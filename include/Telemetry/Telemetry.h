@@ -10,40 +10,59 @@ typedef struct AxisData
 	int z;
 } AxisData;
 
+typedef struct TelemetryStatus
+{
+	bool gps;
+	bool accel;
+	bool gyro;
+	bool mag;
+	bool pressure;
+} TelemetryStatus;
+
 class Telemetry
 {
 	private:
-		TinyGPSPlus gps;
-		Stream* gps_serial
-		void readGps(Stream* serial, TinyGPSPlus* gps);
+		//Telemtry wide
+		void init();
 
-		void readMag();
+		//GPS
+		TinyGPSPlus _gps;
+		Stream* _gps_serial
+		void initGps(Stream* serial);
+		void updateGps();
 
-		void readAccel();
+		//Accelerometer
+		void updateAccel();
 
-		void readGyro();
+		//Gyroscope
+		void updateGyro();
 
-		void readPressure();
+		//Magnetometer
+		void updateMag();
+
+		//Pressure
+		void updatePressure();
 
 	public:
 		//Telemetry wide
-		void read();
-
-		//GPS
-		void initGps(Stream* serial);
+		Telemetry(Stream* gps_stream);
+		void update();
 
 		//Accelerometer
-		void getAccelRaw();
-		void getAttitude();
+		AxisData getAccelRaw();
+		AxisData getAttitude();
 
 		//Gyroscope
-		void getGyroRaw();
+		AxisData getGyroRaw();
 
 		//Magnetometer
-		void getMagRaw();
+		AxisData getMagRaw();
 
 		//Pressure
-		void getPressureRaw();
+		float getPressureRaw();
+
+		//Telemetry variables
+		TelemetryStatus status;
 };
 
 #endif
