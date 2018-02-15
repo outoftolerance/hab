@@ -3,6 +3,7 @@
 
 #include "../TinyGPS++/TinyGPS++.h"
 
+
 typedef struct AxisData
 {
 	int x;
@@ -27,7 +28,7 @@ class Telemetry
 
 		//GPS
 		TinyGPSPlus _gps;
-		Stream* _gps_serial
+		Stream* _gps_serial;
 		void initGps(Stream* serial);
 		void updateGps();
 
@@ -47,6 +48,7 @@ class Telemetry
 		//Telemetry wide
 		Telemetry(Stream* gps_stream);
 		void update();
+		TelemetryStatus status;
 
 		//Accelerometer
 		AxisData getAccelRaw();
@@ -60,9 +62,6 @@ class Telemetry
 
 		//Pressure
 		float getPressureRaw();
-
-		//Telemetry variables
-		TelemetryStatus status;
 };
 
 #endif

@@ -27,9 +27,10 @@ void Telemetry::init()
  *
  * @param      serial  The Stream object for the serial port the GPS is attached to
  */
-void Telemetry::initGps(Stream* serial)
+void Telemetry::initGps(Stream* gps_serial)
 {
-	gps_serial = serial;
+	_gps_serial = gps_serial;
+	_gps_serial->begin(9600);
 }
 
 /**
