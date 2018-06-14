@@ -79,10 +79,10 @@ class Telemetry
 		Adafruit_LSM303_Mag_Unified magnetometer_ = Adafruit_LSM303_Mag_Unified(30302); /**< magnetometer private object */
 		Adafruit_BMP085_Unified barometer_ = Adafruit_BMP085_Unified(18001); /**< barometer private object */
 
-		sensors_event_t accelerometer_event_; /**<  */
-	  sensors_event_t magnetometer_event_; /**<  */
-	  sensors_event_t barometer_event_; /**<  */
-	  sensors_vec_t   orientation_; /**<  */
+		sensors_event_t accelerometer_data_; /**< Struct for latest accelerometer data */
+		sensors_event_t magnetometer_data_; /**< Struct for latest magenetometer data */
+		sensors_event_t barometer_data_; /**< Struct for latest barometer data */
+		sensors_vec_t orientation_; /**< Orientation struct needed by Adafruit sensor library for some functions */
 
 	public:
 		/**
@@ -135,7 +135,7 @@ class Telemetry
 		 * @param      Pointer to variable to output data to
 		 * @return     Boolean success/fail indicator
 		 */
-		bool getBarometereRaw(AxisData* barometer);
+		bool getBarometerRaw(AxisData* barometer);
 };
 
 #endif

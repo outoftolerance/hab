@@ -28,19 +28,19 @@ bool Telemetry::init()
 
 	//Initialise each sensor
 	if(!accelerometer_.begin())
-  {
-    return false;
-  }
+	{
+		return false;
+	}
 
-  if(!magnetometer_.begin())
-  {
-    return false;
-  }
+	if(!magnetometer_.begin())
+	{
+		return false;
+	}
 
-  if(!barometer_.begin())
-  {
-    return false;
-  }
+	if(!barometer_.begin())
+	{
+		return false;
+	}
 
 	//Everything initialied correctly
 	return true;
@@ -65,7 +65,7 @@ void Telemetry::updatesGps_()
 
 void Telemetry::updateAccel_()
 {
-	accelerometer_.getEvent(&accelerometer_event_);
+	accelerometer_.getEvent(&accelerometer_data_);
 }
 
 void Telemetry::updateGyro_()
@@ -75,12 +75,12 @@ void Telemetry::updateGyro_()
 
 void Telemetry::updateMag_()
 {
-	magnetometer_.getEvent(&magnetometer_event_);
+	magnetometer_.getEvent(&magnetometer_data_);
 }
 
 void Telemetry::updatePressure_()
 {
-	barometer_.getEvent(&barometer_event_);
+	barometer_.getEvent(&barometer_data_);
 }
 
 /*------------------------------Public Methods------------------------------*/
@@ -91,37 +91,38 @@ bool get(TelemetryStruct* telemetry)
 	this.update();
 
 	//Calculate attitude from accelerometer
-	if (!sensor_board_.accelGetOrientation(&accelerometer_event_, &orientation_))
-  {
+	if (!sensor_board_.accelGetOrientation(&accelerometer_data_, &orientation_))
+	{
 		return false;
-  }
+	}
 
 	//Calculate heading from magnetometer
-	if (!sensor_board_.magGetOrientation(SENSOR_AXIS_Z, &magnetometer_event_, &orientation_))
-  {
-    return false;
-  }
+	if (!sensor_board_.magGetOrientation(SENSOR_AXIS_Z, &magnetometer_data_, &orientation_))
+	{
+		return false;
+	}
 
 	//Calculate altitude from barometer
 	if (!barometer_event_.pressure)
-  {
-    return false;
-  }
+	{
+		return false;
+	}
 
 	//Get ambient temperature in C
 	float temperature;
 	barometer_.getTemperature(&temperature);
 
 	//Convert atmospheric pressure, SLP and temp to altitude
+	float altitude_barometric;
 	altitude_barometric = barometer_.pressureToAltitude((float)SENSORS_PRESSURE_SEALEVELHPA, barometer_event_.pressure, temperature);
 
-	//Assign to output variable
-	telemetry->lattitude = gps_.lat;
-	telemetry->longitude = gps_.lon;
+	//Assign to output struct
+	telemetry->lattitude = (float)gps_.location.lat();
+	telemetry->longitude = (float)gps_.location.lng();
 	telemetry->roll = orientation_.roll;
 	telemetry->pitch = orientation_.pitch;
 	telemetry->heading = orientation_.heading;
-	telemetry->altitude = gps_.altitude;
+	telemetry->altitude = (float)gps_.altitude.meters();
 	telemetry->altitude_barometric = altitude_barometric;
 	telemetry->temperature = temperature;
 	telemetry->pressure = barometer_event_.pressure;
@@ -144,7 +145,7 @@ bool getMagnetometerRaw(AxisData* magnetometer)
 	return false;
 }
 
-bool getBarometereRaw(AxisData* barometer)
+bool getBarometerRaw(AxisData* barometer)
 {
 	return false;
 }

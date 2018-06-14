@@ -15,7 +15,7 @@ void init();
 
 /**
  * @brief System setup function
- * @detail Initialises all system componenets at start-up
+ * @details Initialises all system componenets at start-up
  */
 void setup() {
   //Start debug serial port
@@ -34,7 +34,7 @@ void setup() {
 
 /**
  * @brief Main program loop
- * @detail Called after setup() function, loops inifiteley, everything happens here
+ * @details Called after setup() function, loops inifiteley, everything happens here
  */
 void loop() {
   logger.debug("Updating telemetry data...")

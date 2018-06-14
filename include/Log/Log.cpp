@@ -15,13 +15,13 @@ Log::Log(Stream* terminal, bool debug)
 
 /*------------------------------Public Methods------------------------------*/
 
-Log::info(char message[])
+void Log::info(char message[])
 {
   output_->print("INFO: ");
   output_->println(message);
 }
 
-Log::debug(char message[])
+void Log::debug(char message[])
 {
   if(debug_)
   {
@@ -30,13 +30,13 @@ Log::debug(char message[])
   }
 }
 
-Log::error(char message[])
+void Log::error(char message[])
 {
   output_->print("ERROR: ");
   output_->println(message);
 }
 
-Log::fatal(char message[])
+void Log::fatal(char message[])
 {
   output_->print("FATAL: ");
   output_->println(message);
