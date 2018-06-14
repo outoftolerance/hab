@@ -1,18 +1,20 @@
 #include "Telemetry.h"
 
-/**
- * @brief      Constructs the Telemetry object and performs initialisation operations
- */
-Telemetry::Telemetry(Stream* gps_serial)
+/*------------------------------Constructor Methods------------------------------*/
+
+Telemetry::Telemetry()
 {
-	init();
-	initGps(gps_serial);
+
 }
 
-/**
- * @brief      Initialises all variables and objects to their default state.
- */
-void Telemetry::init()
+Telemetry::Telemetry(Stream* gps_serial)
+{
+	gps_serial_ = gps_serial;
+}
+
+/*------------------------------Private Methods------------------------------*/
+
+bool Telemetry::init()
 {
 	//Initialise the status object
 	status.gps = FALSE;
@@ -20,23 +22,31 @@ void Telemetry::init()
 	status.gyro = FALSE;
 	status.mag = FALSE;
 	status.pressure = FALSE;
+
+	//Initialise the GPS
+	gps_serial_->begin(9600);
+
+	//Initialise each sensor
+	if(!accelerometer_.begin())
+  {
+    return false;
+  }
+
+  if(!magnetometer_.begin())
+  {
+    return false;
+  }
+
+  if(!barometer_.begin())
+  {
+    return false;
+  }
+
+	//Everything initialied correctly
+	return true;
 }
 
-/**
- * @brief      initGps function passes in a Stream object to be used by the GPS object
- *
- * @param      serial  The Stream object for the serial port the GPS is attached to
- */
-void Telemetry::initGps(Stream* gps_serial)
-{
-	_gps_serial = gps_serial;
-	_gps_serial->begin(9600);
-}
-
-/**
- * @brief      Performs a read on each sensor managed by the Telemetry object
- */
-void Telemetry::update()
+void Telemetry::update_()
 {
 	updateGps();
 	updateAccel();
@@ -45,10 +55,7 @@ void Telemetry::update()
 	updatePressure();
 }
 
-/**
- * @brief      Reads latest data from the GPS receiver
- */
-void Telemetry::updatesGps()
+void Telemetry::updatesGps_()
 {
 	while(_gps_serial->available())
 	{
@@ -56,34 +63,88 @@ void Telemetry::updatesGps()
 	}
 }
 
-/**
- * @brief      Reads latest data from the Accelerometer
- */
-void Telemetry::updatesAccel()
+void Telemetry::updateAccel_()
 {
-
+	accelerometer_.getEvent(&accelerometer_event_);
 }
 
-/**
- * @brief      Reads latest data from the Gyroscope
- */
-void Telemetry::updatesGyro()
+void Telemetry::updateGyro_()
 {
-
+	this.updateAccel();
 }
 
-/**
- * @brief      Reads latest data from the Magnetometer
- */
-void Telemetry::updatesMag()
+void Telemetry::updateMag_()
 {
-
+	magnetometer_.getEvent(&magnetometer_event_);
 }
 
-/**
- * @brief      Reads latest data from the Pressure sensor
- */
-void Telemetry::readPressure()
+void Telemetry::updatePressure_()
 {
+	barometer_.getEvent(&barometer_event_);
+}
 
+/*------------------------------Public Methods------------------------------*/
+
+bool get(TelemetryStruct* telemetry)
+{
+	//Update all sensor data
+	this.update();
+
+	//Calculate attitude from accelerometer
+	if (!sensor_board_.accelGetOrientation(&accelerometer_event_, &orientation_))
+  {
+		return false;
+  }
+
+	//Calculate heading from magnetometer
+	if (!sensor_board_.magGetOrientation(SENSOR_AXIS_Z, &magnetometer_event_, &orientation_))
+  {
+    return false;
+  }
+
+	//Calculate altitude from barometer
+	if (!barometer_event_.pressure)
+  {
+    return false;
+  }
+
+	//Get ambient temperature in C
+	float temperature;
+	barometer_.getTemperature(&temperature);
+
+	//Convert atmospheric pressure, SLP and temp to altitude
+	altitude_barometric = barometer_.pressureToAltitude((float)SENSORS_PRESSURE_SEALEVELHPA, barometer_event_.pressure, temperature);
+
+	//Assign to output variable
+	telemetry->lattitude = gps_.lat;
+	telemetry->longitude = gps_.lon;
+	telemetry->roll = orientation_.roll;
+	telemetry->pitch = orientation_.pitch;
+	telemetry->heading = orientation_.heading;
+	telemetry->altitude = gps_.altitude;
+	telemetry->altitude_barometric = altitude_barometric;
+	telemetry->temperature = temperature;
+	telemetry->pressure = barometer_event_.pressure;
+
+	return true;
+}
+
+bool getAccelerometerRaw(AxisData* accelerometer)
+{
+	return false;
+}
+
+bool getGyroscopeRaw(AxisData* gyroscope)
+{
+	return false;
+}
+
+bool getMagnetometerRaw(AxisData* magnetometer)
+{
+	return false;
+}
+
+bool getBarometereRaw(AxisData* barometer)
+{
+	return false;
 }
