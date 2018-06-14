@@ -20,16 +20,16 @@ void init();
 void setup() {
   //Start debug serial port
   Serial.begin(57600);
-  logger.info("HAB systems starting...")
+  logger.info("HAB systems starting...");
 
   //Initialise the telemetry system
-  logger.info("Initialising telemetry subsystem...")
+  logger.info("Initialising telemetry subsystem...");
   if(!telemetry.init())
   {
-    logger.fatal("Failed to initialise telemetry subsystem!")
+    logger.fatal("Failed to initialise telemetry subsystem!");
     while(1);
   }
-  logger.info("Telemetry initialised successfully!")
+  logger.info("Telemetry initialised successfully!");
 }
 
 /**
@@ -37,12 +37,12 @@ void setup() {
  * @details Called after setup() function, loops inifiteley, everything happens here
  */
 void loop() {
-  logger.debug("Updating telemetry data...")
+  logger.debug("Updating telemetry data...");
   if(!telemetry.get(&current_telemetry))
   {
-    logger.error("Telemetry was not able to be read.")
+    logger.error("Telemetry was not able to be read.");
   }
-  logger.debug("Telemetry data updated.")
+  logger.debug("Telemetry data updated.");
 }
 
 void init()
