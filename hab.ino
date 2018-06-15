@@ -1,5 +1,5 @@
-#include "include/Telemetry/Telemetry.h"
-#include "include/Log/Log.h"
+#include <Telemetry.h>
+#include <Log.h>
 
 const bool debug = false; /**< Global debug flag, changes behaviour and outputs */
 
@@ -11,7 +11,7 @@ TelemetryStruct current_telemetry; /**< Struct to store current telemetry data *
 /**
  * @brief Initialises main program elements
  */
-void init();
+void initialise();
 
 /**
  * @brief System setup function
@@ -45,7 +45,7 @@ void loop() {
   logger.debug("Telemetry data updated.");
 }
 
-void init()
+void initialise()
 {
   //Initialise the telemetry struct values
   current_telemetry.lattitude = 0;

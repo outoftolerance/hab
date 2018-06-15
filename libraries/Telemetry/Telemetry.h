@@ -2,12 +2,12 @@
 #define Telemetry_h
 
 #include <Wire.h>
-#include "../TinyGPS++/TinyGPS++.h"
-#include "../Adafruit_Sensor/Adafruit_Sensor.h"
-#include "../Adafruit_LSM303DLHC/Adafruit_LSM303_U.h"
-#include "../Adafruit_BMP085_Unified/Adafruit_BMP085_U.h"
-#include "../Adafruit_L3GD20_U/Adafruit_L3GD20_U.h"
-#include "../Adafruit_10DOF/Adafruit_10DOF.h"
+#include <TinyGPS++.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303_U.h>
+#include <Adafruit_BMP085_U.h>
+#include <Adafruit_L3GD20_U.h>
+#include <Adafruit_10DOF.h>
 
 /**
  * Structure for axis related data (e.g. acceleration, velocity, gyro, mag, etc...)
@@ -54,25 +54,25 @@ class Telemetry
 		/**
 		 * @brief      Updates with the latest accelerometer data
 		 */
-		void updateAccel_();
+		void updateAccelerometer_();
 
 		/**
 		 * @brief      Updates with the latest gyroscope data
 		 */
-		void updateGyro_();
+		void updateGyroscope_();
 
 		/**
 		 * @brief      Updates with the latest magnetometer data
 		 */
-		void updateMag_();
+		void updateMagnetometer_();
 
 		/**
 		 * @brief      Updates with the latest baronmeter data
 		 */
-		void updatePressure_();
+		void updateBarometer_();
 
 		TinyGPSPlus gps_;	//Defines Tiny GPS object
-		Stream* gps_serial_;	//Defines Stream object for GPS device serial port
+		HardwareSerial* gps_serial_;	//Defines Stream object for GPS device serial port
 
 		Adafruit_10DOF sensor_board_ = Adafruit_10DOF(); /**< 10 degree of freedom sensor board */
 		Adafruit_LSM303_Accel_Unified accelerometer_ = Adafruit_LSM303_Accel_Unified(30301); /**< accelerometer/gyroscope private object */
@@ -95,7 +95,7 @@ class Telemetry
 		 *
 		 * @param      gps_stream  Pointer to the Stream object for the GPS serial port
 		 */
-		Telemetry(Stream* gps_stream);
+		Telemetry(HardwareSerial* gps_stream);
 
 		/**
 		 * @brief      Initialises all variables and objects to their default value/state

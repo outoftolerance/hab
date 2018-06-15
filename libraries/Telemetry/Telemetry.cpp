@@ -7,7 +7,7 @@ Telemetry::Telemetry()
 
 }
 
-Telemetry::Telemetry(Stream* gps_serial)
+Telemetry::Telemetry(HardwareSerial* gps_serial)
 {
 	gps_serial_ = gps_serial;
 }
@@ -16,13 +16,6 @@ Telemetry::Telemetry(Stream* gps_serial)
 
 bool Telemetry::init()
 {
-	//Initialise the status object
-	status.gps = FALSE;
-	status.accel = FALSE;
-	status.gyro = FALSE;
-	status.mag = FALSE;
-	status.pressure = FALSE;
-
 	//Initialise the GPS
 	gps_serial_->begin(9600);
 
@@ -48,47 +41,47 @@ bool Telemetry::init()
 
 void Telemetry::update_()
 {
-	updateGps();
-	updateAccel();
-	updateGyro();
-	updateMag();
-	updatePressure();
+	updateGps_();
+	updateAccelerometer_();
+	updateGyroscope_();
+	updateMagnetometer_();
+	updateBarometer_();
 }
 
-void Telemetry::updatesGps_()
+void Telemetry::updateGps_()
 {
-	while(_gps_serial->available())
+	while(gps_serial_->available())
 	{
-		_gps.encode(_gps_serial->read());
+		gps_.encode(gps_serial_->read());
 	}
 }
 
-void Telemetry::updateAccel_()
+void Telemetry::updateAccelerometer_()
 {
 	accelerometer_.getEvent(&accelerometer_data_);
 }
 
-void Telemetry::updateGyro_()
+void Telemetry::updateGyroscope_()
 {
-	this.updateAccel();
+	
 }
 
-void Telemetry::updateMag_()
+void Telemetry::updateMagnetometer_()
 {
 	magnetometer_.getEvent(&magnetometer_data_);
 }
 
-void Telemetry::updatePressure_()
+void Telemetry::updateBarometer_()
 {
 	barometer_.getEvent(&barometer_data_);
 }
 
 /*------------------------------Public Methods------------------------------*/
 
-bool get(TelemetryStruct* telemetry)
+bool Telemetry::get(TelemetryStruct* telemetry)
 {
 	//Update all sensor data
-	this.update();
+	update_();
 
 	//Calculate attitude from accelerometer
 	if (!sensor_board_.accelGetOrientation(&accelerometer_data_, &orientation_))
@@ -103,7 +96,7 @@ bool get(TelemetryStruct* telemetry)
 	}
 
 	//Calculate altitude from barometer
-	if (!barometer_event_.pressure)
+	if (!barometer_data_.pressure)
 	{
 		return false;
 	}
@@ -114,7 +107,7 @@ bool get(TelemetryStruct* telemetry)
 
 	//Convert atmospheric pressure, SLP and temp to altitude
 	float altitude_barometric;
-	altitude_barometric = barometer_.pressureToAltitude((float)SENSORS_PRESSURE_SEALEVELHPA, barometer_event_.pressure, temperature);
+	altitude_barometric = barometer_.pressureToAltitude((float)SENSORS_PRESSURE_SEALEVELHPA, barometer_data_.pressure, temperature);
 
 	//Assign to output struct
 	telemetry->lattitude = (float)gps_.location.lat();
@@ -125,27 +118,27 @@ bool get(TelemetryStruct* telemetry)
 	telemetry->altitude = (float)gps_.altitude.meters();
 	telemetry->altitude_barometric = altitude_barometric;
 	telemetry->temperature = temperature;
-	telemetry->pressure = barometer_event_.pressure;
+	telemetry->pressure = barometer_data_.pressure;
 
 	return true;
 }
 
-bool getAccelerometerRaw(AxisData* accelerometer)
+bool Telemetry::getAccelerometerRaw(AxisData* accelerometer)
 {
 	return false;
 }
 
-bool getGyroscopeRaw(AxisData* gyroscope)
+bool Telemetry::getGyroscopeRaw(AxisData* gyroscope)
 {
 	return false;
 }
 
-bool getMagnetometerRaw(AxisData* magnetometer)
+bool Telemetry::getMagnetometerRaw(AxisData* magnetometer)
 {
 	return false;
 }
 
-bool getBarometerRaw(AxisData* barometer)
+bool Telemetry::getBarometerRaw(AxisData* barometer)
 {
 	return false;
 }
