@@ -1,6 +1,7 @@
 #ifndef Telemetry_h
 #define Telemetry_h
 
+#include <Buffer.h>
 #include <Wire.h>
 #include <TinyGPS++.h>
 #include <Adafruit_Sensor.h>
@@ -9,8 +10,11 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
 
+#define GPS_SERIAL_BAUD 57600
+#define GPS_SERIAL_BUFFER_SIZE 64
+	
 /**
- * Structure for axis related data (e.g. acceleration, velocity, gyro, mag, etc...)
+ * @brief Structure for axis related data (e.g. acceleration, velocity, gyro, mag, etc...)
  */
 typedef struct AxisData
 {
@@ -20,19 +24,20 @@ typedef struct AxisData
 } AxisData;
 
 /**
- * Structure for complete telemetry output.
+ * @brief Structure for complete telemetry output.
  */
 typedef struct TelemetryStruct
 {
-	float lattitude; /**< Lattitude in decimal degrees */
-	float longitude; /**< Longitude in decimal degrees */
-	float roll; /**< Roll in radians */
-	float pitch; /**< Pitch in radians */
-	float heading; /**< Magnetic heading in degrees */
-	float altitude; /**< Altitude in meters from GPS */
+	float lattitude; 			/**< Lattitude in decimal degrees */
+	float longitude; 			/**< Longitude in decimal degrees */
+	float roll; 				/**< Roll in radians */
+	float pitch; 				/**< Pitch in radians */
+	float heading; 				/**< Magnetic heading in degrees */
+	float course; 				/**< Direction of travel in degrees */
+	float altitude; 			/**< Altitude in meters from GPS */
 	float altitude_barometric;  /**< Altitude in meters from barometer */
-	float temperature; /**< Temperature in degrees C */
-	float pressure; /**< Pressure in pascals */
+	float temperature; 			/**< Temperature in degrees C */
+	float pressure; 			/**< Pressure in pascals */
 } TelemetryStruct;
 
 /**
@@ -71,18 +76,19 @@ class Telemetry
 		 */
 		void updateBarometer_();
 
-		TinyGPSPlus gps_;	//Defines Tiny GPS object
-		HardwareSerial* gps_serial_;	//Defines Stream object for GPS device serial port
+		TinyGPSPlus gps_;						/**< Defines Tiny GPS object */
+		HardwareSerial* gps_serial_;			/**< Defines Stream object for GPS device serial port */
+		Buffer* gps_serial_buffer_;				/**< Buffer to store received GPS serial data in for sending out to other devices */
 
-		Adafruit_10DOF sensor_board_ = Adafruit_10DOF(); /**< 10 degree of freedom sensor board */
-		Adafruit_LSM303_Accel_Unified accelerometer_ = Adafruit_LSM303_Accel_Unified(30301); /**< accelerometer/gyroscope private object */
-		Adafruit_LSM303_Mag_Unified magnetometer_ = Adafruit_LSM303_Mag_Unified(30302); /**< magnetometer private object */
-		Adafruit_BMP085_Unified barometer_ = Adafruit_BMP085_Unified(18001); /**< barometer private object */
+		Adafruit_10DOF sensor_board_ = Adafruit_10DOF(); 										/**< 10 degree of freedom sensor board */
+		Adafruit_LSM303_Accel_Unified accelerometer_ = Adafruit_LSM303_Accel_Unified(30301); 	/**< accelerometer/gyroscope private object */
+		Adafruit_LSM303_Mag_Unified magnetometer_ = Adafruit_LSM303_Mag_Unified(30302); 		/**< magnetometer private object */
+		Adafruit_BMP085_Unified barometer_ = Adafruit_BMP085_Unified(18001); 					/**< barometer private object */
 
-		sensors_event_t accelerometer_data_; /**< Struct for latest accelerometer data */
-		sensors_event_t magnetometer_data_; /**< Struct for latest magenetometer data */
-		sensors_event_t barometer_data_; /**< Struct for latest barometer data */
-		sensors_vec_t orientation_; /**< Orientation struct needed by Adafruit sensor library for some functions */
+		sensors_event_t accelerometer_data_; 	/**< Struct for latest accelerometer data */
+		sensors_event_t magnetometer_data_; 	/**< Struct for latest magenetometer data */
+		sensors_event_t barometer_data_; 		/**< Struct for latest barometer data */
+		sensors_vec_t orientation_; 			/**< Orientation struct needed by Adafruit sensor library for some functions */
 
 	public:
 		/**
@@ -92,7 +98,6 @@ class Telemetry
 
 		/**
 		 * @brief      Telemetry class constructor
-		 *
 		 * @param      gps_stream  Pointer to the Stream object for the GPS serial port
 		 */
 		Telemetry(HardwareSerial* gps_stream);
@@ -136,6 +141,13 @@ class Telemetry
 		 * @return     Boolean success/fail indicator
 		 */
 		bool getBarometerRaw(AxisData* barometer);
+
+		/**
+		 * @brief      Gets the latest gps serial chars
+		 * @param      string  Pointer to the output string
+		 * @return     Number of chars returned
+		 */
+		int getGpsString(char* string);
 };
 
 #endif

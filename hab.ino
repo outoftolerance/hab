@@ -37,12 +37,24 @@ void setup() {
  * @details Called after setup() function, loops inifiteley, everything happens here
  */
 void loop() {
+  //Get latest telemetry data
   logger.debug("Updating telemetry data...");
   if(!telemetry.get(&current_telemetry))
   {
     logger.error("Telemetry was not able to be read.");
   }
   logger.debug("Telemetry data updated.");
+
+  //Send location to APRS tracking
+
+
+  //Send telemetry to SD card logger
+
+
+  //Send telemetry to transmission radios
+
+
+  //
 }
 
 void initialise()

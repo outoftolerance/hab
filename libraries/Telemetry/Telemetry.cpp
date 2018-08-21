@@ -7,9 +7,10 @@ Telemetry::Telemetry()
 
 }
 
-Telemetry::Telemetry(HardwareSerial* gps_serial)
+Telemetry::Telemetry(HardwareSerial* gps_serial) :
+	gps_serial_(gps_serial)
 {
-	gps_serial_ = gps_serial;
+	gps_serial_buffer_ = new Buffer(GPS_SERIAL_BUFFER_SIZE);
 }
 
 /*------------------------------Private Methods------------------------------*/
@@ -17,7 +18,7 @@ Telemetry::Telemetry(HardwareSerial* gps_serial)
 bool Telemetry::init()
 {
 	//Initialise the GPS
-	gps_serial_->begin(9600);
+	gps_serial_->begin(GPS_SERIAL_BAUD);
 
 	//Initialise each sensor
 	if(!accelerometer_.begin())
@@ -50,9 +51,13 @@ void Telemetry::update_()
 
 void Telemetry::updateGps_()
 {
+	char c;
+
 	while(gps_serial_->available())
 	{
-		gps_.encode(gps_serial_->read());
+		c = gps_serial_->read();
+		gps_.encode(c);
+		gps_serial_buffer_->push(c);
 	}
 }
 
@@ -115,6 +120,7 @@ bool Telemetry::get(TelemetryStruct* telemetry)
 	telemetry->roll = orientation_.roll;
 	telemetry->pitch = orientation_.pitch;
 	telemetry->heading = orientation_.heading;
+	telemetry->course = (float)gps_.course.deg();
 	telemetry->altitude = (float)gps_.altitude.meters();
 	telemetry->altitude_barometric = altitude_barometric;
 	telemetry->temperature = temperature;
@@ -141,4 +147,16 @@ bool Telemetry::getMagnetometerRaw(AxisData* magnetometer)
 bool Telemetry::getBarometerRaw(AxisData* barometer)
 {
 	return false;
+}
+
+int Telemetry::getGpsString(char* string)
+{
+	int i = 0;
+
+	while(gps_serial_buffer_->available())
+	{
+		string[i] = gps_serial_buffer_->pop();
+	}
+
+	return i;
 }

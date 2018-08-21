@@ -7,21 +7,22 @@ Log::Log()
 
 }
 
-Log::Log(Stream* terminal, bool debug)
+Log::Log(Stream* terminal, bool debug) :
+  output_(terminal),
+  debug_(debug)
 {
-  output_ = terminal;
-  debug_ = debug;
+
 }
 
 /*------------------------------Public Methods------------------------------*/
 
-void Log::info(char message[])
+void Log::info(const char message[])
 {
   output_->print("INFO: ");
   output_->println(message);
 }
 
-void Log::debug(char message[])
+void Log::debug(const char message[])
 {
   if(debug_)
   {
@@ -30,13 +31,13 @@ void Log::debug(char message[])
   }
 }
 
-void Log::error(char message[])
+void Log::error(const char message[])
 {
   output_->print("ERROR: ");
   output_->println(message);
 }
 
-void Log::fatal(char message[])
+void Log::fatal(const char message[])
 {
   output_->print("FATAL: ");
   output_->println(message);

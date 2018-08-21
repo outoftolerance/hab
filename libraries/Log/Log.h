@@ -19,7 +19,6 @@ class Log {
 
 		/**
 		* @brief      Logger actual constructor
-		*
 		* @param      terminal  Stream pointer to output stream used
 		* @param[in]  debug     Boolean to activate debug mode
 		*/
@@ -27,31 +26,27 @@ class Log {
 
 		/**
 		* @brief      Infomation log level
-		*
 		* @param      message  The message to be logged
 		*/
-		void info(char message[]);
+		void info(const char message[]);
 
 		/**
 		* @brief      Debug log level
-		*
 		* @param      message  The message to be logged
 		*/
-		void debug(char message[]);
+		void debug(const char message[]);
 
 		/**
 		* @brief      Error log level
-		*
 		* @param      message  The message to be logged
 		*/
-		void error(char message[]);
+		void error(const char message[]);
 
 		/**
 		* @brief      Fatal log level
-		*
 		* @param      message  The message to be logged
 		*/
-		void fatal(char message[]);
+		void fatal(const char message[]);
 };
 
 #endif
