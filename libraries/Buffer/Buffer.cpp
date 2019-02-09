@@ -73,10 +73,10 @@ bool Buffer::available()
 {
 	if(back_ != front_)
 	{
-		true;
+		return true;
 	}
 	else
 	{
-		false;
+		return false;
 	}
 }

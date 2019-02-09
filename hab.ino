@@ -1,35 +1,48 @@
+#include <Timer.h>
 #include <Telemetry.h>
 #include <Log.h>
+#include <SimpleHDLC.h>
+#include <StateMachine.h>
 
 const bool debug = false; /**< Global debug flag, changes behaviour and outputs */
+
+SimpleHDLC hdlc(&Serial);
 
 Log logger(&Serial, debug); /**< Log object */
 
 Telemetry telemetry(&Serial1); /**< Telemetry object */
-TelemetryStruct current_telemetry; /**< Struct to store current telemetry data */
 
-/**
- * @brief Initialises main program elements
- */
-void initialise();
+Timer timer_telemetry_check; /**< Timer sets interval between checking telemetry */
+Timer timer_telemetry_report; /**< timer sets interval between reporting telemetry */
+Timer timer_position_report; /**< Timer sets interval between reporting position */
+Timer timer_telemetry_log; /**< timer sets interval between logging telemetry */
+
+//Define some global variables
+MissionState mission_state; /**<Enumerated variable tracks mission state */
+
+//Define functions
+void missionStateSetTimers();
 
 /**
  * @brief System setup function
  * @details Initialises all system componenets at start-up
  */
 void setup() {
-  //Start debug serial port
-  Serial.begin(57600);
-  logger.info("HAB systems starting...");
+    //Start debug serial port
+    Serial.begin(57600);
+    logger.info("HAB systems starting...");
 
-  //Initialise the telemetry system
-  logger.info("Initialising telemetry subsystem...");
-  if(!telemetry.init())
-  {
-    logger.fatal("Failed to initialise telemetry subsystem!");
-    while(1);
-  }
-  logger.info("Telemetry initialised successfully!");
+    //Initialise state
+    mission_state = STAGING;
+
+    //Initialise the telemetry system
+    logger.info("Initialising telemetry subsystem...");
+    if(!telemetry.init())
+    {
+        logger.fatal("Failed to initialise telemetry subsystem!");
+        while(1);
+    }
+    logger.info("Telemetry initialised successfully!");
 }
 
 /**
@@ -37,36 +50,48 @@ void setup() {
  * @details Called after setup() function, loops inifiteley, everything happens here
  */
 void loop() {
-  //Get latest telemetry data
-  logger.debug("Updating telemetry data...");
-  if(!telemetry.get(&current_telemetry))
-  {
-    logger.error("Telemetry was not able to be read.");
-  }
-  logger.debug("Telemetry data updated.");
-
-  //Send location to APRS tracking
-
-
-  //Send telemetry to SD card logger
-
-
-  //Send telemetry to transmission radios
-
-
-  //
+    //Check state of mission and set timers accordingly
+    missionStateSetTimers();
 }
 
-void initialise()
+void missionStateSetTimers()
 {
-  //Initialise the telemetry struct values
-  current_telemetry.lattitude = 0;
-  current_telemetry.longitude = 0;
-  current_telemetry.roll = 0;
-  current_telemetry.pitch = 0;
-  current_telemetry.heading = 0;
-  current_telemetry.altitude = 0;
-  current_telemetry.altitude_barometric = 0;
-  current_telemetry.temperature = 0;
-  current_telemetry.pressure = 0;
+    switch(mission_state)
+    {
+        case STAGING:
+            timer_telemetry_check.setInterval(STAGING_CHECK_TELEMETRY_INTERVAL);
+            timer_telemetry_report.setInterval(STAGING_REPORT_TELEMETRY_INTERVAL);
+            timer_telemetry_log.setInterval(STAGING_LOG_TELEMETRY_INTERVAL);
+            timer_position_report.setInterval(STAGING_REPORT_POSITION_INTERVAL);
+        case TAKEOFF:
+            timer_telemetry_check.setInterval(TAKEOFF_CHECK_TELEMETRY_INTERVAL);
+            timer_telemetry_report.setInterval(TAKEOFF_REPORT_TELEMETRY_INTERVAL);
+            timer_telemetry_log.setInterval(TAKEOFF_LOG_TELEMETRY_INTERVAL);
+            timer_position_report.setInterval(TAKEOFF_REPORT_POSITION_INTERVAL);
+        case ASCENDING:
+            timer_telemetry_check.setInterval(ASCENDING_CHECK_TELEMETRY_INTERVAL);
+            timer_telemetry_report.setInterval(ASCENDING_REPORT_TELEMETRY_INTERVAL);
+            timer_telemetry_log.setInterval(ASCENDING_LOG_TELEMETRY_INTERVAL);
+            timer_position_report.setInterval(ASCENDING_REPORT_POSITION_INTERVAL);
+        case DESCENDING:
+            timer_telemetry_check.setInterval(DESCENDING_CHECK_TELEMETRY_INTERVAL);
+            timer_telemetry_report.setInterval(DESCENDING_REPORT_TELEMETRY_INTERVAL);
+            timer_telemetry_log.setInterval(DESCENDING_LOG_TELEMETRY_INTERVAL);
+            timer_position_report.setInterval(DESCENDING_REPORT_POSITION_INTERVAL);
+        case LANDING:
+            timer_telemetry_check.setInterval(LANDING_CHECK_TELEMETRY_INTERVAL);
+            timer_telemetry_report.setInterval(LANDING_REPORT_TELEMETRY_INTERVAL);
+            timer_telemetry_log.setInterval(LANDING_LOG_TELEMETRY_INTERVAL);
+            timer_position_report.setInterval(LANDING_REPORT_POSITION_INTERVAL);
+        case RECOVERY:
+            timer_telemetry_check.setInterval(RECOVERY_CHECK_TELEMETRY_INTERVAL);
+            timer_telemetry_report.setInterval(RECOVERY_REPORT_TELEMETRY_INTERVAL);
+            timer_telemetry_log.setInterval(RECOVERY_LOG_TELEMETRY_INTERVAL);
+            timer_position_report.setInterval(RECOVERY_REPORT_POSITION_INTERVAL);
+        case RECOVERED:
+            timer_telemetry_check.setInterval(RECOVERED_CHECK_TELEMETRY_INTERVAL);
+            timer_telemetry_report.setInterval(RECOVERED_REPORT_TELEMETRY_INTERVAL);
+            timer_telemetry_log.setInterval(RECOVERED_LOG_TELEMETRY_INTERVAL);
+            timer_position_report.setInterval(RECOVERED_REPORT_POSITION_INTERVAL);
+    }
 }

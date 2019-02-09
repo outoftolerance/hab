@@ -36,7 +36,7 @@ bool Telemetry::init()
 		return false;
 	}
 
-	//Everything initialied correctly
+	//Everything initialized correctly
 	return true;
 }
 
