@@ -5,7 +5,8 @@
 
 /*------------------------------Constructor Methods------------------------------*/
 
-SimpleHDLC::SimpleHDLC(Stream* input_stream)
+SimpleHDLC::SimpleHDLC(Stream* input_stream, message_callback_type callback_function):
+	handleMessageCallback_(callback_function)
 {
 	this->data_stream_ = input_stream;
 	
@@ -87,7 +88,7 @@ void SimpleHDLC::receive()
 				this->deserializeMessage_(&new_message, this->frame_receive_buffer_, (uint8_t)(this->frame_position_-2));
 
 				//Execute message callback function
-				//TODO
+				(*this->handleMessageCallback_)(new_message);
 			}
 
 			//Start of a new frame! Reset CRC and position

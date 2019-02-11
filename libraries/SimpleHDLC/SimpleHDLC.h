@@ -17,67 +17,70 @@
  */
 typedef struct
 {
-	uint8_t command;
-	uint8_t length;
-	uint8_t payload[MAX_FRAME_LENGTH - 8];
+    uint8_t command;
+    uint8_t length;
+    uint8_t payload[MAX_FRAME_LENGTH - 8];
 } hdlcMessage;
+
+typedef void (* message_callback_type)(hdlcMessage message);
 
 /**
  * @brief      Simple HDLC message interface class
  */
 class SimpleHDLC
 {
-	private:
-		Stream* data_stream_; /**< Stream to read data from and publish data to */
+    public:
+        /**
+         * @brief      Constructor of SimpleHDLC object
+         *
+         * @param      input_stream  Pointer to the input stream the object should read from
+         */
+        SimpleHDLC(Stream* input_stream, message_callback_type);
 
-		uint8_t* frame_receive_buffer_; /**< Buffer to receive frame data into from stream */
-		uint16_t frame_crc_; /**< CRC for frame **/
-		uint8_t frame_position_; /**< Position within frame **/
-		bool escape_byte_; /** Tracks if byte should be escaped **/
+        /**
+         * @brief      Processes tyhe data stream to find messages.
+         */
+        void receive();
 
-		/**
-		 * @brief      Sends a single byte through the serial port
-		 *
-		 * @param[in]  data  The data bute to be sent
-		 */
-		void sendByte_(uint8_t data);
+        /**
+         * @brief      Function to send a message via the stream, will be wrapped in HDLC frame
+         *
+         * @param[in]  message  The message to be sent
+         */
+        void send(const hdlcMessage* message);
+    private:
+        Stream* data_stream_; /**< Stream to read data from and publish data to */
 
-		/**
-		 * @brief      Serializes an HDLC message as a series of bytes
-		 *
-		 * @param[in]   message    The message to serialize
-		 * @param[out]  buffer     The buffer to output serial data to
-		 * @param[out]  length     The length of the output buffer
-		 */
-		void serializeMessage_(const hdlcMessage* message, uint8_t* buffer, uint8_t buffer_length);
+        uint8_t* frame_receive_buffer_; /**< Buffer to receive frame data into from stream */
+        uint16_t frame_crc_; /**< CRC for frame **/
+        uint8_t frame_position_; /**< Position within frame **/
+        bool escape_byte_; /**< Tracks if byte should be escaped **/
+        message_callback_type handleMessageCallback_; /**< User defined message handler callback function */
 
-		/**
-		 * @brief      Deserializes an HDLC message from a series of bytes
-		 *
-		 * @param[out] message  The message object to populate with deserialized data
-		 * @param[in]  buffer   The buffer to deserialize from
-		 * @param[in]  length   The length of the input buffer
-		 */
-		void deserializeMessage_(hdlcMessage* message, const uint8_t* buffer, uint8_t buffer_length);
-	public:
-		/**
-		 * @brief      Constructor of SimpleHDLC object
-		 *
-		 * @param      input_stream  Pointer to the input stream the object should read from
-		 */
-		SimpleHDLC(Stream* input_stream);
+        /**
+         * @brief      Sends a single byte through the serial port
+         *
+         * @param[in]  data  The data bute to be sent
+         */
+        void sendByte_(uint8_t data);
 
-		/**
-		 * @brief      Processes tyhe data stream to find messages.
-		 */
-		void receive();
+        /**
+         * @brief      Serializes an HDLC message as a series of bytes
+         *
+         * @param[in]   message    The message to serialize
+         * @param[out]  buffer     The buffer to output serial data to
+         * @param[out]  length     The length of the output buffer
+         */
+        void serializeMessage_(const hdlcMessage* message, uint8_t* buffer, uint8_t buffer_length);
 
-		/**
-		 * @brief      Function to send a message via the stream, will be wrapped in HDLC frame
-		 *
-		 * @param[in]  message  The message to be sent
-		 */
-		void send(const hdlcMessage* message);
+        /**
+         * @brief      Deserializes an HDLC message from a series of bytes
+         *
+         * @param[out] message  The message object to populate with deserialized data
+         * @param[in]  buffer   The buffer to deserialize from
+         * @param[in]  length   The length of the input buffer
+         */
+        void deserializeMessage_(hdlcMessage* message, const uint8_t* buffer, uint8_t buffer_length);
 };
 
 #endif

@@ -3,10 +3,23 @@
 #include <Log.h>
 #include <SimpleHDLC.h>
 #include <StateMachine.h>
+#include <MessageDefinitions.h>
 
 const bool debug = false; /**< Global debug flag, changes behaviour and outputs */
 
-SimpleHDLC hdlc(&Serial);
+/**
+ * @brief      Sets timers based on mission state
+ */
+void missionStateSetTimers();
+
+/**
+ * @brief      Callback function handles new messages from HDLC
+ *
+ * @param[in]  message  The message to be handled
+ */
+void handleMessageCallback(hdlcMessage message);
+
+SimpleHDLC hdlc(&Serial, &handleMessageCallback); /**< HDLC messaging object */
 
 Log logger(&Serial, debug); /**< Log object */
 
@@ -19,9 +32,6 @@ Timer timer_telemetry_log; /**< timer sets interval between logging telemetry */
 
 //Define some global variables
 MissionState mission_state; /**<Enumerated variable tracks mission state */
-
-//Define functions
-void missionStateSetTimers();
 
 /**
  * @brief System setup function
@@ -37,11 +47,13 @@ void setup() {
 
     //Initialise the telemetry system
     logger.info("Initialising telemetry subsystem...");
+
     if(!telemetry.init())
     {
         logger.fatal("Failed to initialise telemetry subsystem!");
         while(1);
     }
+
     logger.info("Telemetry initialised successfully!");
 }
 
@@ -52,6 +64,16 @@ void setup() {
 void loop() {
     //Check state of mission and set timers accordingly
     missionStateSetTimers();
+
+    hdlcMessage test_message;
+
+    test_message.command = MESSAGE_TYPE_REPORT_TELEMETRY;
+    test_message.length = 1;
+    test_message.payload[0] = (uint8_t)8;
+
+    hdlc.send(&test_message);
+
+    delay(5000);
 }
 
 void missionStateSetTimers()
@@ -94,4 +116,9 @@ void missionStateSetTimers()
             timer_telemetry_log.setInterval(RECOVERED_LOG_TELEMETRY_INTERVAL);
             timer_position_report.setInterval(RECOVERED_REPORT_POSITION_INTERVAL);
     }
+}
+
+void handleMessageCallback(hdlcMessage message)
+{
+
 }
