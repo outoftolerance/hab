@@ -23,7 +23,7 @@ SimpleHDLC hdlc(&Serial, &handleMessageCallback); /**< HDLC messaging object */
 
 Log logger(&Serial, debug); /**< Log object */
 
-Telemetry telemetry(&Serial1); /**< Telemetry object */
+//Telemetry telemetry(&Serial1); /**< Telemetry object */
 
 Timer timer_telemetry_check; /**< Timer sets interval between checking telemetry */
 Timer timer_telemetry_report; /**< timer sets interval between reporting telemetry */
@@ -38,6 +38,9 @@ MissionState mission_state; /**<Enumerated variable tracks mission state */
  * @details Initialises all system componenets at start-up
  */
 void setup() {
+    //Setup pin modes
+    pinMode(LED_BUILTIN, OUTPUT);
+    
     //Start debug serial port
     Serial.begin(57600);
     logger.info("HAB systems starting...");
@@ -48,12 +51,13 @@ void setup() {
     //Initialise the telemetry system
     logger.info("Initialising telemetry subsystem...");
 
+/*
     if(!telemetry.init())
     {
         logger.fatal("Failed to initialise telemetry subsystem!");
         while(1);
     }
-
+*/
     logger.info("Telemetry initialised successfully!");
 }
 
@@ -120,5 +124,8 @@ void missionStateSetTimers()
 
 void handleMessageCallback(hdlcMessage message)
 {
-
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
 }

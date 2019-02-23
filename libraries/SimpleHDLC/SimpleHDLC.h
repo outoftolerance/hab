@@ -49,14 +49,6 @@ class SimpleHDLC
          */
         void send(const hdlcMessage* message);
     private:
-        Stream* data_stream_; /**< Stream to read data from and publish data to */
-
-        uint8_t* frame_receive_buffer_; /**< Buffer to receive frame data into from stream */
-        uint16_t frame_crc_; /**< CRC for frame **/
-        uint8_t frame_position_; /**< Position within frame **/
-        bool escape_byte_; /**< Tracks if byte should be escaped **/
-        message_callback_type handleMessageCallback_; /**< User defined message handler callback function */
-
         /**
          * @brief      Sends a single byte through the serial port
          *
@@ -81,6 +73,13 @@ class SimpleHDLC
          * @param[in]  length   The length of the input buffer
          */
         void deserializeMessage_(hdlcMessage* message, const uint8_t* buffer, uint8_t buffer_length);
+
+        Stream* data_stream_;                           /**< Stream to read data from and publish data to */
+        uint8_t* frame_receive_buffer_;                 /**< Buffer to receive frame data into from stream */
+        uint16_t frame_crc_;                            /**< CRC for frame **/
+        uint8_t frame_position_;                        /**< Position within frame **/
+        bool escape_byte_;                              /**< Tracks if byte should be escaped **/
+        message_callback_type handleMessageCallback_;   /**< User defined message handler callback function */
 };
 
 #endif
