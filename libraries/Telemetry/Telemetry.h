@@ -77,7 +77,7 @@ class Telemetry
 		void updateBarometer_();
 
 		TinyGPSPlus gps_;						/**< Defines Tiny GPS object */
-		HardwareSerial* gps_serial_;			/**< Defines Stream object for GPS device serial port */
+		Stream* gps_serial_;			        /**< Defines Stream object for GPS device serial port */
 		Buffer* gps_serial_buffer_;				/**< Buffer to store received GPS serial data in for sending out to other devices */
 
 		Adafruit_10DOF sensor_board_ = Adafruit_10DOF(); 										/**< 10 degree of freedom sensor board */
@@ -86,9 +86,11 @@ class Telemetry
 		Adafruit_BMP085_Unified barometer_ = Adafruit_BMP085_Unified(18001); 					/**< barometer private object */
 
 		sensors_event_t accelerometer_data_; 	/**< Struct for latest accelerometer data */
+		//sensors_event_t gyroscope_data_;		/**< Struct for latest gyroscope data */
 		sensors_event_t magnetometer_data_; 	/**< Struct for latest magenetometer data */
 		sensors_event_t barometer_data_; 		/**< Struct for latest barometer data */
 		sensors_vec_t orientation_; 			/**< Orientation struct needed by Adafruit sensor library for some functions */
+
 
 	public:
 		/**
@@ -100,7 +102,7 @@ class Telemetry
 		 * @brief      Telemetry class constructor
 		 * @param      gps_stream  Pointer to the Stream object for the GPS serial port
 		 */
-		Telemetry(HardwareSerial* gps_stream);
+		Telemetry(const Stream* gps_stream);
 
 		/**
 		 * @brief      Initialises all variables and objects to their default value/state
@@ -140,7 +142,7 @@ class Telemetry
 		 * @param      Pointer to variable to output data to
 		 * @return     Boolean success/fail indicator
 		 */
-		bool getBarometerRaw(AxisData* barometer);
+		bool getBarometerRaw(float* data);
 
 		/**
 		 * @brief      Gets the latest gps serial chars

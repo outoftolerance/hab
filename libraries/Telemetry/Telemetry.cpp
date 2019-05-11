@@ -7,7 +7,7 @@ Telemetry::Telemetry()
 
 }
 
-Telemetry::Telemetry(HardwareSerial* gps_serial) :
+Telemetry::Telemetry(const Stream* gps_serial) :
 	gps_serial_(gps_serial)
 {
 	gps_serial_buffer_ = new Buffer(GPS_SERIAL_BUFFER_SIZE);
@@ -18,7 +18,7 @@ Telemetry::Telemetry(HardwareSerial* gps_serial) :
 bool Telemetry::init()
 {
 	//Initialise the GPS
-	gps_serial_->begin(GPS_SERIAL_BAUD);
+	static_cast<HardwareSerial*>(gps_serial_)->begin(GPS_SERIAL_BAUD);
 
 	//Initialise each sensor
 	if(!accelerometer_.begin())
@@ -47,6 +47,8 @@ void Telemetry::update_()
 	updateGyroscope_();
 	updateMagnetometer_();
 	updateBarometer_();
+
+	
 }
 
 void Telemetry::updateGps_()
@@ -68,7 +70,7 @@ void Telemetry::updateAccelerometer_()
 
 void Telemetry::updateGyroscope_()
 {
-	
+	//gyroscope_.getEvent(&gyroscope_data_);
 }
 
 void Telemetry::updateMagnetometer_()
@@ -144,7 +146,7 @@ bool Telemetry::getMagnetometerRaw(AxisData* magnetometer)
 	return false;
 }
 
-bool Telemetry::getBarometerRaw(AxisData* barometer)
+bool Telemetry::getBarometerRaw(float* data)
 {
 	return false;
 }

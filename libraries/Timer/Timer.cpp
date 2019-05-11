@@ -33,6 +33,11 @@ bool Timer::isSet()
 	return is_set_;
 }
 
+bool Timer::isStarted()
+{
+	return is_running_;
+}
+
 bool Timer::start()
 {
 	if(!is_set_ || is_running_)

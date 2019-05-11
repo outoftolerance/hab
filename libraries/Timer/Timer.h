@@ -47,6 +47,12 @@ public:
         bool isSet();
 
         /**
+         * @brief Checks if the timer is running currently
+         * @return True if running, false if not
+         */
+        bool isStarted();
+
+        /**
          * @brief Starts the timer if it's stopped and if it's set corrently
          * @return True if timer transitions from stopped to started. False otherwise.
          */
