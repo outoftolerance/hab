@@ -1,3 +1,10 @@
+# HAB
+HAB is a High Altitude Balloon project designed with specific goals in mind.
+ - Take a picture of the curvature of the earth
+ - Take a picture of the earth and space
+ - Learn new things through project research (atmosphere, weather, etc)
+ - Develop engineering skills (Software and Electrical)
+
 # Mission States
 `Staging` <-> `Takeoff` -> `Ascending` -> `Descending` -> `Landing` -> `Recovery` <-> `Recovered`
 

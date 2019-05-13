@@ -65,7 +65,7 @@ public:
         bool stop();
 
         /**
-         * @brief Checks the timer if it's elapsed beyond interval
+         * @brief Checks the timer if it's elapsed beyond interval, does not reset timer when called
          * @return True if timer is elapsed, false otherwise.
          */
 	bool check();
