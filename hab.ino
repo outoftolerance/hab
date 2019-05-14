@@ -34,9 +34,6 @@ Timer timer_telemetry_report;                                       /**< timer s
 Timer timer_position_report;                                        /**< Timer sets interval between reporting position */
 Timer timer_telemetry_log;                                          /**< timer sets interval between logging telemetry */
 
-//Define some global variables
-TelemetryStruct current_telemetry;
-
 /**
  * @brief System setup function
  * @details Initialises all system componenets at start-up
@@ -81,6 +78,7 @@ void loop() {
     bool launch_switch_state = false;                       /**< Current launch switch state */
     bool silence_switch_state = false;                      /**< Current silsnce switch state */
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
+    TelemetryStruct current_telemetry;                      /**< Current telemetry */
 
     while(1)
     {
@@ -191,4 +189,23 @@ void handleMessageCallback(hdlcMessage message)
     delay(100);
     digitalWrite(LED_BUILTIN, LOW);
     delay(100);
+}
+
+void sendTelemetryReport(TelemetryStruct* telemetry)
+{
+
+}
+
+void logTelemetry(TelemetryStruct* telemetry)
+{
+
+}
+
+void sendPositionReport(TelemetryStruct* telemetry)
+{
+    hdlcMessage message;
+    message.command = MESSAGE_TYPE_REPORT_POSITION;
+    message.length = 0;
+    message.payload = 0;
+    hdlc.send(&message);
 }
