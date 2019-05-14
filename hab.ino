@@ -2,8 +2,8 @@
 #include <Telemetry.h>
 #include <Log.h>
 #include <SimpleHDLC.h>
+#include <SimpleMessageProtocol.h>
 #include <MissionState.h>
-#include <MessageDefinitions.h>
 #include <HardwareConfiguration.h>
 
 #define DEBUG false;                                /**< Global debug flag, changes behaviour and outputs */
@@ -185,10 +185,23 @@ void setTimers(MissionStateFunction function)
 
 void handleMessageCallback(hdlcMessage message)
 {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
+    switch(message.command)
+    {
+        case MESSAGE_TYPE_REPORT_TELEMETRY:
+            break;
+        case MESSAGE_TYPE_REPORT_POSITION:
+            break;
+        case MESSAGE_TYPE_COMMAND_TAKEOFF:
+            break;
+        case MESSAGE_TYPE_COMMAND_ABORT_TAKEOFF:
+            break;
+        case MESSAGE_TYPE_COMMAND_SET_STATE:
+            break;
+        case MESSAGE_TYPE_PROTO_ACK;
+            break;
+        case MESSAGE_TYPE_PROTO_NACK;
+            break;
+    }
 }
 
 void sendTelemetryReport(TelemetryStruct* telemetry)
