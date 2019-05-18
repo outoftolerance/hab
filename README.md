@@ -5,6 +5,32 @@ HAB is a High Altitude Balloon project designed with specific goals in mind.
  - Learn new things through project research (atmosphere, weather, etc)
  - Develop engineering skills (Software and Electrical)
 
+The code for this project is written in the Arduino language so that it is portable and easy to understand for other people who might want to create a similar project of their own, or extend the project in their own way.
+
+# Getting Started
+In order to get started with this software, please follow the steps outlined below. This guide will walk through the various elements of the project and will direct you to other resources along the way (such as hardware design documents).
+
+## Hardware
+Check out the hardware designs at [Google Drive](https://drive.google.com/drive/folders/1r9GAZf073PXg80UJds1Ubpu39Qg9nagI?usp=sharing).
+
+## Software
+
+1. Install the Arduino IDE, this can be found at the [Arduino website](http://arduino.cc).
+
+2. Clone this repository to your computer, below are the commands to do this in Linux.
+```bash
+cd ~/Documents
+git clone https://github.com/outoftolerance/hab
+```
+
+3. Start the Arduino IDE.
+
+4. Change the path for the library folder to reference the project folder at `~/Documents/hab`, this is needed for some of hte libraries to work correctly. To do this go to `File -> Preferences` and alter the "Sketchbook Location" field, then click ok.
+
+5. Select the Arduino board type you are using from `Tools -> Board`.
+
+6. Click `Upload` to program the board!
+
 # Mission States
 `Staging` <-> `Takeoff` -> `Ascending` -> `Descending` -> `Landing` -> `Recovery` <-> `Recovered`
 
