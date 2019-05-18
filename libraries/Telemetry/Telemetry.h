@@ -28,7 +28,7 @@ typedef struct AxisData
  */
 typedef struct TelemetryStruct
 {
-	float lattitude; 			/**< Lattitude in decimal degrees */
+	float latitude; 			/**< Latitude in decimal degrees */
 	float longitude; 			/**< Longitude in decimal degrees */
 	float roll; 				/**< Roll in radians */
 	float pitch; 				/**< Pitch in radians */
@@ -45,53 +45,6 @@ typedef struct TelemetryStruct
  */
 class Telemetry
 {
-	private:
-		/**
-		 * @brief      Updates all sensors
-		 */
-		void update_();
-
-		/**
-		 * @brief      Updates with the latest GPS data
-		 */
-		void updateGps_();
-
-		/**
-		 * @brief      Updates with the latest accelerometer data
-		 */
-		void updateAccelerometer_();
-
-		/**
-		 * @brief      Updates with the latest gyroscope data
-		 */
-		void updateGyroscope_();
-
-		/**
-		 * @brief      Updates with the latest magnetometer data
-		 */
-		void updateMagnetometer_();
-
-		/**
-		 * @brief      Updates with the latest baronmeter data
-		 */
-		void updateBarometer_();
-
-		TinyGPSPlus gps_;						/**< Defines Tiny GPS object */
-		Stream* gps_serial_;			        /**< Defines Stream object for GPS device serial port */
-		Buffer* gps_serial_buffer_;				/**< Buffer to store received GPS serial data in for sending out to other devices */
-
-		Adafruit_10DOF sensor_board_ = Adafruit_10DOF(); 										/**< 10 degree of freedom sensor board */
-		Adafruit_LSM303_Accel_Unified accelerometer_ = Adafruit_LSM303_Accel_Unified(30301); 	/**< accelerometer/gyroscope private object */
-		Adafruit_LSM303_Mag_Unified magnetometer_ = Adafruit_LSM303_Mag_Unified(30302); 		/**< magnetometer private object */
-		Adafruit_BMP085_Unified barometer_ = Adafruit_BMP085_Unified(18001); 					/**< barometer private object */
-
-		sensors_event_t accelerometer_data_; 	/**< Struct for latest accelerometer data */
-		//sensors_event_t gyroscope_data_;		/**< Struct for latest gyroscope data */
-		sensors_event_t magnetometer_data_; 	/**< Struct for latest magenetometer data */
-		sensors_event_t barometer_data_; 		/**< Struct for latest barometer data */
-		sensors_vec_t orientation_; 			/**< Orientation struct needed by Adafruit sensor library for some functions */
-
-
 	public:
 		/**
 		 * @brief      Default telemetry class constructor, not used
@@ -102,7 +55,7 @@ class Telemetry
 		 * @brief      Telemetry class constructor
 		 * @param      gps_stream  Pointer to the Stream object for the GPS serial port
 		 */
-		Telemetry(const Stream* gps_stream);
+		Telemetry(Stream& gps_stream);
 
 		/**
 		 * @brief      Initialises all variables and objects to their default value/state
@@ -150,6 +103,52 @@ class Telemetry
 		 * @return     Number of chars returned
 		 */
 		int getGpsString(char* string);
+
+	private:
+		/**
+		 * @brief      Updates all sensors
+		 */
+		void update_();
+
+		/**
+		 * @brief      Updates with the latest GPS data
+		 */
+		void updateGps_();
+
+		/**
+		 * @brief      Updates with the latest accelerometer data
+		 */
+		void updateAccelerometer_();
+
+		/**
+		 * @brief      Updates with the latest gyroscope data
+		 */
+		void updateGyroscope_();
+
+		/**
+		 * @brief      Updates with the latest magnetometer data
+		 */
+		void updateMagnetometer_();
+
+		/**
+		 * @brief      Updates with the latest baronmeter data
+		 */
+		void updateBarometer_();
+
+		TinyGPSPlus gps_;									/**< Defines Tiny GPS object */
+		Stream& gps_serial_;			        			/**< Defines Stream object for GPS device serial port */
+		Buffer* gps_serial_buffer_;							/**< Buffer to store received GPS serial data in for sending out to other devices */
+
+		Adafruit_10DOF sensor_board_ = Adafruit_10DOF(); 										/**< 10 degree of freedom sensor board */
+		Adafruit_LSM303_Accel_Unified accelerometer_ = Adafruit_LSM303_Accel_Unified(30301); 	/**< accelerometer/gyroscope private object */
+		Adafruit_LSM303_Mag_Unified magnetometer_ = Adafruit_LSM303_Mag_Unified(30302); 		/**< magnetometer private object */
+		Adafruit_BMP085_Unified barometer_ = Adafruit_BMP085_Unified(18001); 					/**< barometer private object */
+
+		sensors_event_t accelerometer_data_; 	/**< Struct for latest accelerometer data */
+		//sensors_event_t gyroscope_data_;		/**< Struct for latest gyroscope data */
+		sensors_event_t magnetometer_data_; 	/**< Struct for latest magenetometer data */
+		sensors_event_t barometer_data_; 		/**< Struct for latest barometer data */
+		sensors_vec_t orientation_; 			/**< Orientation struct needed by Adafruit sensor library for some functions */
 };
 
 #endif

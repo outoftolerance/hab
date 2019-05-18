@@ -1,6 +1,0 @@
-#ifndef MESSAGE_REPORT_TELEMETRY_H
-#define MESSAGE_REPORT_TELEMETRY_H
-
-
-
-#endif

@@ -9,7 +9,7 @@
  */
 class Log {
 	private:
-		Stream* output_; /**< Pointer to stream used for output */
+		Stream& output_; /**< Pointer to stream used for output */
 		bool debug_; /**< Debug mode flag */
 	public:
 		/**
@@ -22,7 +22,7 @@ class Log {
 		* @param      terminal  Stream pointer to output stream used
 		* @param[in]  debug     Boolean to activate debug mode
 		*/
-		Log(Stream* terminal, bool debug);
+		Log(Stream& terminal, bool debug);
 
 		/**
 		* @brief      Infomation log level

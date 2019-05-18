@@ -2,15 +2,26 @@
 #include <Telemetry.h>
 #include <Log.h>
 #include <SimpleHDLC.h>
-#include <SimpleMessageProtocol.h>
 #include <MissionState.h>
 #include <HardwareConfiguration.h>
 
-#define DEBUG false;                                /**< Global debug flag, changes behaviour and outputs */
+#define DEBUG false                          /**< Global debug flag, changes behaviour and outputs */
 
-const Stream* gps_input_stream = &Serial;           /**< GPS device input stream */
-const Stream* logging_output_stream = &Serial;      /**< Logging output stream */
-const Stream* messaging_output_stream = &Serial;    /**< Messaging output stream */
+Stream& gps_input_stream = Serial;           /**< GPS device input stream */
+Stream& logging_output_stream = Serial;      /**< Logging output stream */
+Stream& messaging_output_stream = Serial;    /**< Messaging output stream */
+
+enum MESSAGE_TYPES {
+    MESSAGE_TYPE_REPORT_TELEMETRY,
+    MESSAGE_TYPE_REPORT_POSITION,
+
+    MESSAGE_TYPE_COMMAND_TAKEOFF,
+    MESSAGE_TYPE_COMMAND_ABORT_TAKEOFF,
+    MESSAGE_TYPE_COMMAND_SET_STATE,
+
+    MESSAGE_TYPE_PROTO_ACK,
+    MESSAGE_TYPE_PROTO_NACK
+};
 
 /**
  * @brief      Sets timers based on mission state
@@ -170,7 +181,7 @@ void loop() {
             test_message.command = MESSAGE_TYPE_REPORT_TELEMETRY;
             test_message.length = 1;
             test_message.payload[0] = (uint8_t)8;
-            hdlc.send(&test_message);
+            hdlc.send(test_message);
         }
     }
 }
@@ -187,19 +198,19 @@ void handleMessageCallback(hdlcMessage message)
 {
     switch(message.command)
     {
-        case MESSAGE_TYPE_REPORT_TELEMETRY:
+        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_TELEMETRY:
             break;
-        case MESSAGE_TYPE_REPORT_POSITION:
+        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION:
             break;
-        case MESSAGE_TYPE_COMMAND_TAKEOFF:
+        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_TAKEOFF:
             break;
-        case MESSAGE_TYPE_COMMAND_ABORT_TAKEOFF:
+        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ABORT_TAKEOFF:
             break;
-        case MESSAGE_TYPE_COMMAND_SET_STATE:
+        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_STATE:
             break;
-        case MESSAGE_TYPE_PROTO_ACK;
+        case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK:
             break;
-        case MESSAGE_TYPE_PROTO_NACK;
+        case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_NACK:
             break;
     }
 }
@@ -219,6 +230,5 @@ void sendPositionReport(TelemetryStruct* telemetry)
     hdlcMessage message;
     message.command = MESSAGE_TYPE_REPORT_POSITION;
     message.length = 0;
-    message.payload = 0;
-    hdlc.send(&message);
+    hdlc.send(message);
 }

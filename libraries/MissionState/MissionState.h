@@ -9,13 +9,13 @@
  */
 enum MissionStates 
 {
-	STAGING,
-	TAKEOFF,
-	ASCENDING,
-	DESCENDING,
-	LANDING,
-	RECOVERY,
-	RECOVERED
+    STAGING,
+    TAKEOFF,
+    ASCENDING,
+    DESCENDING,
+    LANDING,
+    RECOVERY,
+    RECOVERED
 };
 
 /**
@@ -23,12 +23,12 @@ enum MissionStates
  */
 typedef struct
 {
-	unsigned long telemetry_check_interval;
-	unsigned long telemetry_report_interval;
-	unsigned long telemetry_log_interval;
-	unsigned long position_report_interval;
-	bool beeper_enabled;
-	bool led_enabled;
+    unsigned long telemetry_check_interval;
+    unsigned long telemetry_report_interval;
+    unsigned long telemetry_log_interval;
+    unsigned long position_report_interval;
+    bool beeper_enabled;
+    bool led_enabled;
 } MissionStateFunction;
 
 /**
@@ -96,41 +96,42 @@ typedef struct
  */
 class MissionState
 {
-	private:
-		MissionStates current_mission_sate_; 					/**< Current enumerated state of the mission */
-		MissionStateFunction current_mission_state_function_; 	/**< Functionality of the current mission state */
-		Timer* recovered_timeout_;
-		Timer* silence_button_timeout_;
-		Timer* descent_timeout_;
-		Timer* landing_timeout_;
-		float previous_altitude_;
-	public:
-		MissionState();
-		~MissionState();
+    public:
+        MissionState();
+        ~MissionState();
 
-		/**
-		 * @brief Update the mission state with latest information
-		 * @return bool True if successfully updated, false if error reported
-		 */
-		bool update(TelemetryStruct* telemetry, bool launch_switch, bool silence_switch);
+        /**
+         * @brief Update the mission state with latest information
+         * @return bool True if successfully updated, false if error reported
+         */
+        bool update(TelemetryStruct* telemetry, bool launch_switch, bool silence_switch);
 
-		/**
-		 * @brief Allows setting of the mission state to a particular state
-		 * @return bool True if success, false if error reported
-		 */
-		bool set(MissionStates state);
+        /**
+         * @brief Allows setting of the mission state to a particular state
+         * @return bool True if success, false if error reported
+         */
+        bool set(int state);
 
-		/**
-		 * @brief Returns the current state of the mission
-		 * @return MissionStates enumerated mission state
-		 */
-		MissionStates get();
+        /**
+         * @brief Returns the current state of the mission
+         * @return MissionStates enumerated mission state
+         */
+        int get();
 
-		/**
-		 * @brief Returns the current state of the functions related to mission states
-		 * @return MissionStateFunction type with values based on current mission state
-		 */
-		MissionStateFunction getFunction();
+        /**
+         * @brief Returns the current state of the functions related to mission states
+         * @return MissionStateFunction type with values based on current mission state
+         */
+        MissionStateFunction getFunction();
+
+    private:
+        int current_mission_state_;                             /**< Current enumerated state of the mission */
+        MissionStateFunction current_mission_state_function_;   /**< Functionality of the current mission state */
+        Timer recovered_timeout_;                               /**< Timer for recovered mode time-out */
+        Timer silence_timeout_;                                 /**< Timer for silence button time-out */
+        Timer descent_timeout_;                                 /**< Timer for checking descent */
+        Timer landing_timeout_;                                 /**< Timer for checking landing */
+        float previous_altitude_;                               /**< Stores previous loop's altitude */
 };
 
 #endif

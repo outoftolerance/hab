@@ -7,7 +7,7 @@ Telemetry::Telemetry()
 
 }
 
-Telemetry::Telemetry(const Stream* gps_serial) :
+Telemetry::Telemetry(Stream& gps_serial) :
 	gps_serial_(gps_serial)
 {
 	gps_serial_buffer_ = new Buffer(GPS_SERIAL_BUFFER_SIZE);
@@ -18,7 +18,7 @@ Telemetry::Telemetry(const Stream* gps_serial) :
 bool Telemetry::init()
 {
 	//Initialise the GPS
-	static_cast<HardwareSerial*>(gps_serial_)->begin(GPS_SERIAL_BAUD);
+	static_cast<HardwareSerial&>(gps_serial_).begin(GPS_SERIAL_BAUD);
 
 	//Initialise each sensor
 	if(!accelerometer_.begin())
@@ -55,9 +55,9 @@ void Telemetry::updateGps_()
 {
 	char c;
 
-	while(gps_serial_->available())
+	while(gps_serial_.available())
 	{
-		c = gps_serial_->read();
+		c = gps_serial_.read();
 		gps_.encode(c);
 		gps_serial_buffer_->push(c);
 	}
@@ -117,7 +117,7 @@ bool Telemetry::get(TelemetryStruct* telemetry)
 	altitude_barometric = barometer_.pressureToAltitude((float)SENSORS_PRESSURE_SEALEVELHPA, barometer_data_.pressure, temperature);
 
 	//Assign to output struct
-	telemetry->lattitude = (float)gps_.location.lat();
+	telemetry->latitude = (float)gps_.location.lat();
 	telemetry->longitude = (float)gps_.location.lng();
 	telemetry->roll = orientation_.roll;
 	telemetry->pitch = orientation_.pitch;

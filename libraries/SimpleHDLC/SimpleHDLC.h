@@ -15,7 +15,7 @@
 /**
  * Defines the structure of the message
  */
-typedef struct
+typedef struct hdlcMessage
 {
     uint8_t command;
     uint8_t length;
@@ -35,7 +35,7 @@ class SimpleHDLC
          *
          * @param      input_stream  Pointer to the input stream the object should read from
          */
-        SimpleHDLC(Stream* input_stream, message_callback_type);
+        SimpleHDLC(Stream& input_stream, message_callback_type);
 
         /**
          * @brief      Processes tyhe data stream to find messages.
@@ -47,7 +47,7 @@ class SimpleHDLC
          *
          * @param[in]  message  The message to be sent
          */
-        void send(const hdlcMessage* message);
+        void send(const hdlcMessage& message);
     private:
         /**
          * @brief      Sends a single byte through the serial port
@@ -63,7 +63,7 @@ class SimpleHDLC
          * @param[out]  buffer     The buffer to output serial data to
          * @param[out]  length     The length of the output buffer
          */
-        void serializeMessage_(const hdlcMessage* message, uint8_t* buffer, uint8_t buffer_length);
+        void serializeMessage_(const hdlcMessage& message, uint8_t buffer[], uint8_t buffer_length);
 
         /**
          * @brief      Deserializes an HDLC message from a series of bytes
@@ -72,14 +72,14 @@ class SimpleHDLC
          * @param[in]  buffer   The buffer to deserialize from
          * @param[in]  length   The length of the input buffer
          */
-        void deserializeMessage_(hdlcMessage* message, const uint8_t* buffer, uint8_t buffer_length);
+        void deserializeMessage_(hdlcMessage& message, const uint8_t buffer[], uint8_t buffer_length);
 
-        Stream* data_stream_;                           /**< Stream to read data from and publish data to */
-        uint8_t* frame_receive_buffer_;                 /**< Buffer to receive frame data into from stream */
-        uint16_t frame_crc_;                            /**< CRC for frame **/
-        uint8_t frame_position_;                        /**< Position within frame **/
-        bool escape_byte_;                              /**< Tracks if byte should be escaped **/
-        message_callback_type handleMessageCallback_;   /**< User defined message handler callback function */
+        Stream& data_stream_;                                   /**< Stream to read data from and publish data to */
+        uint8_t frame_receive_buffer_[MAX_FRAME_LENGTH + 1];    /**< Buffer to receive frame data into from stream */
+        uint16_t frame_crc_;                                    /**< CRC for frame **/
+        uint8_t frame_position_;                                /**< Position within frame **/
+        bool escape_byte_;                                      /**< Tracks if byte should be escaped **/
+        message_callback_type handleMessageCallback_;           /**< User defined message handler callback function */
 };
 
 #endif

@@ -2,25 +2,25 @@
 
 MissionState::MissionState()
 {
-	descent_timeout_ = new Timer(DESCENT_DETECTION_TIMEOUT_INTERVAL);
-	recovered_timeout_ = new Timer(RECOVERED_INNACTIVITY_TIMEOUT_INTERVAL);
-	silence_timeout_ = new Timer(SILENCE_DETECTION_TIMEOUT_INTERVAL);
-	landing_timeout_ = new Timer(LANDING_DETECTION_TIMEOUT_INTERVAL);
+	descent_timeout_.setInterval(DESCENT_DETECTION_TIMEOUT_INTERVAL);
+	recovered_timeout_.setInterval(RECOVERED_INNACTIVITY_TIMEOUT_INTERVAL);
+	silence_timeout_.setInterval(SILENCE_DETECTION_TIMEOUT_INTERVAL);
+	landing_timeout_.setInterval(LANDING_DETECTION_TIMEOUT_INTERVAL);
 }
 
 MissionState::~MissionState()
 {
-	delete descent_timeout_;
-	descent_timeout_ = nullptr;
+	descent_timeout_.stop();
+	descent_timeout_.forceReset();
 
-	delete recovered_timeout_;
-	recovered_timeout_ = nullptr;
+	recovered_timeout_.stop();
+	recovered_timeout_.forceReset();
 
-	delete silence_timeout_;
-	silence_timeout_ = nullptr;
+	silence_timeout_.stop();
+	silence_timeout_.forceReset();
 
-	delete landing_timeout_;
-	landing_timeout_ = nullptr;
+	landing_timeout_.stop();
+	landing_timeout_.forceReset();
 }
 
 bool MissionState::update(TelemetryStruct* telemetry, bool launch_switch, bool silence_switch)
@@ -44,26 +44,26 @@ bool MissionState::update(TelemetryStruct* telemetry, bool launch_switch, bool s
 		case ASCENDING:
 			if(telemetry->altitude < previous_altitude_)
 			{
-				if(descent_timeout_->isStarted())
+				if(descent_timeout_.isStarted())
 				{
-					if(descent_timeout_->check())
+					if(descent_timeout_.check())
 					{
 						current_mission_state_ = DESCENDING;
-						descent_timeout_->stop();
-						descent_timeout_->reset();
+						descent_timeout_.stop();
+						descent_timeout_.reset();
 					}
 				}
 				else
 				{
-					descent_timeout_->start();
+					descent_timeout_.start();
 				}
 			}
 			else
 			{
-				if(descent_timeout_->isStarted())
+				if(descent_timeout_.isStarted())
 				{
-					descent_timeout_->stop();
-					descent_timeout_->forceReset();
+					descent_timeout_.stop();
+					descent_timeout_.forceReset();
 				}
 			}
 
@@ -76,26 +76,26 @@ bool MissionState::update(TelemetryStruct* telemetry, bool launch_switch, bool s
 		case LANDING:
 			if(telemetry->altitude <= previous_altitude_ + LANDED_ALTITUDE_DEADZONE && telemetry->altitude >= previous_altitude_ - LANDED_ALTITUDE_DEADZONE)
 			{
-				if(landed_timeout->isStarted())
+				if(landing_timeout_.isStarted())
 				{
-					if(landed_timeout->check())
+					if(landing_timeout_.check())
 					{
 						current_mission_state_ = RECOVERY;
-						landed_timeout->stop();
-						landed_timeout->reset();
+						landing_timeout_.stop();
+						landing_timeout_.reset();
 					}
 				}
 				else
 				{
-					landed_timeout->start();
+					landing_timeout_.start();
 				}
 			}
 			else
 			{
-				if(landed_timeout->isStarted())
+				if(landing_timeout_.isStarted())
 				{
-					landed_timeout->stop();
-					landed_timeout->forceReset();
+					landing_timeout_.stop();
+					landing_timeout_.forceReset();
 				}
 			}
 
@@ -103,53 +103,53 @@ bool MissionState::update(TelemetryStruct* telemetry, bool launch_switch, bool s
 		case RECOVERY:
 			if(silence_switch)
 			{
-				if(silence_timeout_->isStarted())
+				if(silence_timeout_.isStarted())
 				{
-					if(silence_timeout_->check())
+					if(silence_timeout_.check())
 					{
 						current_mission_state_ = RECOVERED;
-						silence_timeout_->stop();
-						silence_timeout_->reset();
+						silence_timeout_.stop();
+						silence_timeout_.reset();
 					}
 				}
 				else
 				{
-					silence_timeout_->start();
+					silence_timeout_.start();
 				}
 			}
 			else
 			{
-				if(silence_timeout_->isStarted())
+				if(silence_timeout_.isStarted())
 				{
-					silence_timeout_->stop();
-					silence_timeout_->forceReset();
+					silence_timeout_.stop();
+					silence_timeout_.forceReset();
 				}
 			}
 		case RECOVERED:
-			if(recovered_timeout_->isStarted())
+			if(recovered_timeout_.isStarted())
 			{
-				if(recovered_timeout_->check())
+				if(recovered_timeout_.check())
 				{
 					current_mission_state_ = RECOVERY;
-					recovered_timeout_->stop();
-					recovered_timeout_->reset();
+					recovered_timeout_.stop();
+					recovered_timeout_.reset();
 				}
 			}
 			else
 			{
-				recovered_timeout_->start();
+				recovered_timeout_.start();
 			}
 	}
 }
 
-bool MissionState::set(MisisonStates state)
+bool MissionState::set(int state)
 {
 	current_mission_state_ = state;
 
 	return true;
 }
 
-MissionStates MissionState::get()
+int MissionState::get()
 {
 	return current_mission_state_;
 }
