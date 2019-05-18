@@ -32,6 +32,10 @@ git clone https://github.com/outoftolerance/hab
 6. Click `Upload` to program the board!
 
 # Mission States
+In order to control the different functions of the balloon at different stages in the flight, a state machine was developed which tracks mission state based on inputs such as telemetry, button presses, and command messages.
+
+The following states have been defined in the state machine, for a more graphical view see the [Software Design Documentation](https://drive.google.com/file/d/1JTLx4fkZP5AwBsL-5_mE49o71bBY4H_E/view?usp=sharing) on Google Drive.
+
 `Staging` <-> `Takeoff` -> `Ascending` -> `Descending` -> `Landing` -> `Recovery` <-> `Recovered`
 
 ## Staging
