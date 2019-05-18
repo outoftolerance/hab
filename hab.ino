@@ -1,3 +1,6 @@
+#include <Arduino.h>
+#include "wiring_private.h" // For ATSAMD M0 pinPeripheral() function
+
 #include <Timer.h>
 #include <Telemetry.h>
 #include <Log.h>
@@ -5,11 +8,38 @@
 #include <MissionState.h>
 #include <HardwareConfiguration.h>
 
-#define DEBUG false                          /**< Global debug flag, changes behaviour and outputs */
+#define DEBUG false                                                 /**< Global debug flag, changes behaviour and outputs */
 
-Stream& gps_input_stream = Serial;           /**< GPS device input stream */
-Stream& logging_output_stream = Serial;      /**< Logging output stream */
-Stream& messaging_output_stream = Serial;    /**< Messaging output stream */
+/*
+ * Creating some new Serial ports using M0 SERCOM for peripherals
+ * Notes for Adafruit Feather M0:
+ *     - Serial goes to USB port
+ *     - Serial1 goes to hardware pins
+ *     - Serial5 is on pins 30 (TX), 31 (RX) but not exposed on the board
+ */
+Uart Serial2 (&sercom1, 11, 10, SERCOM_RX_PAD_0, UART_TX_PAD_2);    /**< Creating a second serial port using SERCOM1 */
+Uart Serial3 (&sercom2, 3, 4, SERCOM_RX_PAD_1, UART_TX_PAD_0);      /**< Creating a third serial port using SERCOM2 */
+
+/*
+ * @brief Handler function for SERCOM1 (serial port 2)
+ */
+void SERCOM1_Handler()
+{
+  Serial2.IrqHandler();
+}
+
+/*
+ * @brief Handler function for SERCOM2 (serial port 3)
+ */
+void SERCOM2_Handler()
+{
+  Serial3.IrqHandler();
+}
+
+Stream& logging_output_stream = Serial;             /**< Logging output stream */
+Stream& gps_input_stream = Serial2;                 /**< GPS device input stream */
+Stream& radio_input_output_stream = Serial3;        /**< Radio input output stream */
+Stream& cellular_input_output_stream = Serial5;     /**< Cellular output stream (Serial5 pre-defined for Feather M0 on SERCOM5) */
 
 enum MESSAGE_TYPES {
     MESSAGE_TYPE_REPORT_TELEMETRY,
@@ -35,15 +65,16 @@ void setTimers(MissionStateFunction function);
  */
 void handleMessageCallback(hdlcMessage message);
 
-SimpleHDLC hdlc(messaging_output_stream, &handleMessageCallback);   /**< HDLC messaging object, linked to message callback */
-Log logger(logging_output_stream, DEBUG);                           /**< Log object */
-Telemetry telemetry(gps_input_stream);                              /**< Telemetry object */
+SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
+SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
+Log logger(logging_output_stream, DEBUG);                                   /**< Log object */
+Telemetry telemetry(gps_input_stream);                                      /**< Telemetry object */
 
-MissionState mission_state;                                         /**< Mission state state machine object */
-Timer timer_telemetry_check;                                        /**< Timer sets interval between checking telemetry */
-Timer timer_telemetry_report;                                       /**< timer sets interval between reporting telemetry */
-Timer timer_position_report;                                        /**< Timer sets interval between reporting position */
-Timer timer_telemetry_log;                                          /**< timer sets interval between logging telemetry */
+MissionState mission_state;         /**< Mission state state machine object */
+Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
+Timer timer_telemetry_report;       /**< timer sets interval between reporting telemetry */
+Timer timer_position_report;        /**< Timer sets interval between reporting position */
+Timer timer_telemetry_log;          /**< timer sets interval between logging telemetry */
 
 /**
  * @brief System setup function
@@ -56,8 +87,26 @@ void setup() {
     pinMode(SILENCE_SWITCH, INPUT);
     
     //Start debug serial port
-    Serial.begin(57600);
+    static_cast<HardwareSerial&>(logging_output_stream).begin(57600);
     logger.info("HAB systems starting...");
+
+    //Start GPS Serial port
+    logger.info("Starting GPS serial port...");
+    static_cast<HardwareSerial&>(gps_input_stream).begin(57600);
+    pinPeripheral(10, PIO_SERCOM);
+    pinPeripheral(11, PIO_SERCOM);
+
+    //Start radio modem Serial port
+    logger.info("Starting radio modem serial port...");
+    static_cast<HardwareSerial&>(radio_input_output_stream).begin(57600);
+    pinPeripheral(3, PIO_SERCOM_ALT);
+    pinPeripheral(4, PIO_SERCOM_ALT);
+
+    //Start cellular modem Serial port
+    logger.info("Starting cellular modem serial port...");
+    static_cast<HardwareSerial&>(cellular_input_output_stream).begin(57600);
+    //pinPeripheral(6, PIO_SERCOM;
+    //pinPeripheral(7, PIO_SERCOM);
 
     //Initialise state machine
     logger.info("Initialising Mission State subsystem...");
@@ -181,7 +230,9 @@ void loop() {
             test_message.command = MESSAGE_TYPE_REPORT_TELEMETRY;
             test_message.length = 1;
             test_message.payload[0] = (uint8_t)8;
-            hdlc.send(test_message);
+
+            radio.send(test_message);
+            cellular.send(test_message);
         }
     }
 }
@@ -229,7 +280,8 @@ void sendTelemetryReport(TelemetryStruct& telemetry)
         message.payload[i] = *temp_pointer++;
     }
 
-    hdlc.send(message);
+    radio.send(message);
+    cellular.send(message);
 }
 
 void logTelemetry(TelemetryStruct& telemetry)
@@ -251,5 +303,6 @@ void sendPositionReport(TelemetryStruct& telemetry)
         message.payload[i] = *temp_pointer++;
     }
 
-    hdlc.send(message);
+    radio.send(message);
+    cellular.send(message);
 }
