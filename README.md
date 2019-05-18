@@ -25,7 +25,7 @@ git clone https://github.com/outoftolerance/hab
 
 3. Start the Arduino IDE.
 
-4. Change the path for the library folder to reference the project folder at `~/Documents/hab`, this is needed for some of hte libraries to work correctly. To do this go to `File -> Preferences` and alter the "Sketchbook Location" field, then click ok.
+4. Change the path for the library folder to reference the project folder at `~/Documents/hab`, this is needed for some of the libraries to work correctly. To do this go to `File -> Preferences` and alter the "Sketchbook Location" field, then click ok.
 
 5. Select the Arduino board type you are using from `Tools -> Board`.
 
