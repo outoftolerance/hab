@@ -30,12 +30,12 @@ typedef struct TelemetryStruct
 {
 	float latitude; 			/**< Latitude in decimal degrees */
 	float longitude; 			/**< Longitude in decimal degrees */
+	float altitude; 			/**< Altitude in meters from GPS */
+	float altitude_barometric;  /**< Altitude in meters from barometer */
 	float roll; 				/**< Roll in radians */
 	float pitch; 				/**< Pitch in radians */
 	float heading; 				/**< Magnetic heading in degrees */
 	float course; 				/**< Direction of travel in degrees */
-	float altitude; 			/**< Altitude in meters from GPS */
-	float altitude_barometric;  /**< Altitude in meters from barometer */
 	float temperature; 			/**< Temperature in degrees C */
 	float pressure; 			/**< Pressure in pascals */
 } TelemetryStruct;
@@ -102,7 +102,7 @@ class Telemetry
 		 * @param      string  Pointer to the output string
 		 * @return     Number of chars returned
 		 */
-		int getGpsString(char& string);
+		int getGpsString(char string[]);
 
 	private:
 		/**

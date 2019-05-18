@@ -149,13 +149,14 @@ bool Telemetry::getBarometerRaw(float& data)
 	return false;
 }
 
-int Telemetry::getGpsString(char& string)
+int Telemetry::getGpsString(char string[])
 {
 	int i = 0;
 
 	while(gps_serial_buffer_->available())
 	{
 		string[i] = gps_serial_buffer_->pop();
+		i++;
 	}
 
 	return i;

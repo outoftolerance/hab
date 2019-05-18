@@ -105,7 +105,7 @@ void loop() {
         {
             //Get latest telemetry
             logger.info("Getting update from Telemetry subsystem.");
-            if(!telemetry.get(&current_telemetry))
+            if(!telemetry.get(current_telemetry))
             {
                 logger.error("Failed to get update from Telemetry subsystem!");
             }
@@ -224,23 +224,32 @@ void sendTelemetryReport(TelemetryStruct& telemetry)
     int i = 0;
     const uint8_t* temp_pointer = (const uint8_t*)&telemetry;
 
-    for (i = 0; i < sizeof(telemetry); i++)
+    for (i = 0; i < message.length; i++)
     {
         message.payload[i] = *temp_pointer++;
     }
-    
+
     hdlc.send(message);
 }
 
-void logTelemetry(TelemetryStruct* telemetry)
+void logTelemetry(TelemetryStruct& telemetry)
 {
-    
+
 }
 
-void sendPositionReport(TelemetryStruct* telemetry)
+void sendPositionReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
     message.command = MESSAGE_TYPE_REPORT_POSITION;
-    message.length = 0;
+    message.length = 3 * sizeof(float);
+
+    int i = 0;
+    const uint8_t* temp_pointer = (const uint8_t*)&telemetry;
+
+    for (i = 0; i < message.length; i++)
+    {
+        message.payload[i] = *temp_pointer++;
+    }
+
     hdlc.send(message);
 }
