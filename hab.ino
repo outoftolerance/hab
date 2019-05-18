@@ -12,10 +12,15 @@
 
 /*
  * Creating some new Serial ports using M0 SERCOM for peripherals
- * Notes for Adafruit Feather M0:
+ *
+ * Notes for Adafruit Feather M0 pre-defined Serial ports:
  *     - Serial goes to USB port
- *     - Serial1 goes to hardware pins
+ *     - Serial1 is broken out on the board and uses pins 1 (TX), 0 (RX)
  *     - Serial5 is on pins 30 (TX), 31 (RX) but not exposed on the board
+ * 
+ * We are adding the following:
+ *     - Serial2 on pins 10 (TX), 11 (RX)
+ *     - Serial3 on pins 4 (TX), 3 (RX)
  */
 Uart Serial2 (&sercom1, 11, 10, SERCOM_RX_PAD_0, UART_TX_PAD_2);    /**< Creating a second serial port using SERCOM1 */
 Uart Serial3 (&sercom2, 3, 4, SERCOM_RX_PAD_1, UART_TX_PAD_0);      /**< Creating a third serial port using SERCOM2 */
@@ -105,8 +110,6 @@ void setup() {
     //Start cellular modem Serial port
     logger.info("Starting cellular modem serial port...");
     static_cast<HardwareSerial&>(cellular_input_output_stream).begin(57600);
-    //pinPeripheral(6, PIO_SERCOM;
-    //pinPeripheral(7, PIO_SERCOM);
 
     //Initialise state machine
     logger.info("Initialising Mission State subsystem...");
