@@ -47,8 +47,6 @@ void Telemetry::update_()
 	updateGyroscope_();
 	updateMagnetometer_();
 	updateBarometer_();
-
-	
 }
 
 void Telemetry::updateGps_()
@@ -85,7 +83,7 @@ void Telemetry::updateBarometer_()
 
 /*------------------------------Public Methods------------------------------*/
 
-bool Telemetry::get(TelemetryStruct* telemetry)
+bool Telemetry::get(TelemetryStruct& telemetry)
 {
 	//Update all sensor data
 	update_();
@@ -117,41 +115,41 @@ bool Telemetry::get(TelemetryStruct* telemetry)
 	altitude_barometric = barometer_.pressureToAltitude((float)SENSORS_PRESSURE_SEALEVELHPA, barometer_data_.pressure, temperature);
 
 	//Assign to output struct
-	telemetry->latitude = (float)gps_.location.lat();
-	telemetry->longitude = (float)gps_.location.lng();
-	telemetry->roll = orientation_.roll;
-	telemetry->pitch = orientation_.pitch;
-	telemetry->heading = orientation_.heading;
-	telemetry->course = (float)gps_.course.deg();
-	telemetry->altitude = (float)gps_.altitude.meters();
-	telemetry->altitude_barometric = altitude_barometric;
-	telemetry->temperature = temperature;
-	telemetry->pressure = barometer_data_.pressure;
+	telemetry.latitude = (float)gps_.location.lat();
+	telemetry.longitude = (float)gps_.location.lng();
+	telemetry.roll = orientation_.roll;
+	telemetry.pitch = orientation_.pitch;
+	telemetry.heading = orientation_.heading;
+	telemetry.course = (float)gps_.course.deg();
+	telemetry.altitude = (float)gps_.altitude.meters();
+	telemetry.altitude_barometric = altitude_barometric;
+	telemetry.temperature = temperature;
+	telemetry.pressure = barometer_data_.pressure;
 
 	return true;
 }
 
-bool Telemetry::getAccelerometerRaw(AxisData* accelerometer)
+bool Telemetry::getAccelerometerRaw(AxisData& accelerometer)
 {
 	return false;
 }
 
-bool Telemetry::getGyroscopeRaw(AxisData* gyroscope)
+bool Telemetry::getGyroscopeRaw(AxisData& gyroscope)
 {
 	return false;
 }
 
-bool Telemetry::getMagnetometerRaw(AxisData* magnetometer)
+bool Telemetry::getMagnetometerRaw(AxisData& magnetometer)
 {
 	return false;
 }
 
-bool Telemetry::getBarometerRaw(float* data)
+bool Telemetry::getBarometerRaw(float& data)
 {
 	return false;
 }
 
-int Telemetry::getGpsString(char* string)
+int Telemetry::getGpsString(char& string)
 {
 	int i = 0;
 

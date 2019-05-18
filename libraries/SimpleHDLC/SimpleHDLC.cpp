@@ -135,7 +135,7 @@ void SimpleHDLC::send(const hdlcMessage& message)
     uint16_t fcs = CRC16_CCITT_INIT_VAL;
 
     //Convert message to serial bytes
-    uint8_t buffer[64];
+    uint8_t buffer[MAX_FRAME_LENGTH];
     serializeMessage_(message, buffer, message.length + 2);
 
     //Send initial frame flag to open frame

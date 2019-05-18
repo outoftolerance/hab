@@ -119,7 +119,7 @@ void loop() {
         //Telemetry Report
         if(timer_telemetry_report.check())
         {
-            //stuff
+            sendTelemetryReport(current_telemetry);
 
             timer_telemetry_report.reset();
         }
@@ -215,14 +215,26 @@ void handleMessageCallback(hdlcMessage message)
     }
 }
 
-void sendTelemetryReport(TelemetryStruct* telemetry)
+void sendTelemetryReport(TelemetryStruct& telemetry)
 {
+    hdlcMessage message;
+    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_TELEMETRY;
+    message.length = sizeof(telemetry);
 
+    int i = 0;
+    const uint8_t* temp_pointer = (const uint8_t*)&telemetry;
+
+    for (i = 0; i < sizeof(telemetry); i++)
+    {
+        message.payload[i] = *temp_pointer++;
+    }
+    
+    hdlc.send(message);
 }
 
 void logTelemetry(TelemetryStruct* telemetry)
 {
-
+    
 }
 
 void sendPositionReport(TelemetryStruct* telemetry)

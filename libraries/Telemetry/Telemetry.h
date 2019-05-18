@@ -67,42 +67,42 @@ class Telemetry
 		 * @param      Pointer to variable to output data to
 		 * @return     Boolean success/fail indicator
 		 */
-		bool get(TelemetryStruct* telemetry);
+		bool get(TelemetryStruct& telemetry);
 
 		/**
 		 * @brief      Gets raw accelerometer data
 		 * @param      Pointer to variable to output data to
 		 * @return     Boolean success/fail indicator
 		 */
-		bool getAccelerometerRaw(AxisData* accelerometer);
+		bool getAccelerometerRaw(AxisData& accelerometer);
 
 		/**
 		 * @brief      Gets the raw gyroscope data
 		 * @param      Pointer to variable to output data to
 		 * @return     Boolean success/fail indicator
 		 */
-		bool getGyroscopeRaw(AxisData* gyroscope);
+		bool getGyroscopeRaw(AxisData& gyroscope);
 
 		/**
 		 * @brief      Gets the raw magnetometer data
 		 * @param      Pointer to variable to output data to
 		 * @return     Boolean success/fail indicator
 		 */
-		bool getMagnetometerRaw(AxisData* magnetometer);
+		bool getMagnetometerRaw(AxisData& magnetometer);
 
 		/**
 		 * @brief      Gets the raw barometer data
 		 * @param      Pointer to variable to output data to
 		 * @return     Boolean success/fail indicator
 		 */
-		bool getBarometerRaw(float* data);
+		bool getBarometerRaw(float& data);
 
 		/**
 		 * @brief      Gets the latest gps serial chars
 		 * @param      string  Pointer to the output string
 		 * @return     Number of chars returned
 		 */
-		int getGpsString(char* string);
+		int getGpsString(char& string);
 
 	private:
 		/**
