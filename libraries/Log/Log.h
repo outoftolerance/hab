@@ -13,11 +13,6 @@ class Log {
 		bool debug_; /**< Debug mode flag */
 	public:
 		/**
-		 * @brief      Log default constructor
-		 */
-		Log();
-
-		/**
 		* @brief      Logger actual constructor
 		* @param      terminal  Stream pointer to output stream used
 		* @param[in]  debug     Boolean to activate debug mode

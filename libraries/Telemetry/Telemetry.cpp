@@ -1,12 +1,6 @@
 #include "Telemetry.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-
-Telemetry::Telemetry()
-{
-
-}
-
 Telemetry::Telemetry(Stream& gps_serial) :
 	gps_serial_(gps_serial)
 {

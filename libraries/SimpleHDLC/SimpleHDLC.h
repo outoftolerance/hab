@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #include <stdint.h>
-#include <util/crc16.h>
+#include <crc16.h>
 
 #define FRAME_FLAG 0x7e /**< Message start flag */
 #define CONTROL_ESCAPE_BYTE 0x7D /**< A "control escape octet", has the bit sequence '01111101', (7D hexadecimal) */

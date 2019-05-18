@@ -47,11 +47,6 @@ class Telemetry
 {
 	public:
 		/**
-		 * @brief      Default telemetry class constructor, not used
-		 */
-		Telemetry();
-
-		/**
 		 * @brief      Telemetry class constructor
 		 * @param      gps_stream  Pointer to the Stream object for the GPS serial port
 		 */

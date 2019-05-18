@@ -135,7 +135,7 @@ void loop() {
         //Position Report
         if(timer_position_report.check())
         {
-            //stuff
+            sendPositionReport(current_telemetry);
 
             timer_position_report.reset();
         }

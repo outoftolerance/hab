@@ -1,12 +1,6 @@
 #include "Log.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-
-Log::Log()
-{
-
-}
-
 Log::Log(Stream& terminal, bool debug) :
   output_(terminal),
   debug_(debug)
