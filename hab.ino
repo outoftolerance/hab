@@ -61,7 +61,7 @@ void setup() {
 
     //Initialise state machine
     logger.info("Initialising Mission State subsystem...");
-    if(!mission_state.set(MissionStates::STAGING))
+    if(!mission_state.set(MISSION_STATES::STAGING))
     {
         logger.fatal("Failed to initialise Mission State subsystem!");
         while(1);

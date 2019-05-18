@@ -7,7 +7,7 @@
 /**
  * @brief      Enumerator defines different states in the HAB mission
  */
-enum MissionStates 
+enum MISSION_STATES 
 {
     STAGING,
     TAKEOFF,
