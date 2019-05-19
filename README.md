@@ -72,16 +72,17 @@ The different elements of the system are connected together using Serial, I2C, a
 
 ![Hardware Interface Connection Diagram](documents/hardware_interface_connection_diagram.png?raw=true)
 
-# Mission States
+# Software
+The software for this project is likely to be much more complex than is really required for such a simple mission, however part of the goal of this project was to learn new techniques and to advance my knowledge of object-oriented programming, abstraction, division of responsibility, and writing extensible and maintainable code. 
+
+For this reason different sub-systems are built into their own libraries, these libraries are described at a functional level here, and at a technical level in the header file comments for each package.
+
+## Mission States
 In order to control the different functions of the balloon at different stages in the flight, a state machine was developed which tracks mission state based on inputs such as telemetry, button presses, and command messages.
-
-The following states have been defined in the state machine, for a more graphical view see the [Software Design Documentation](https://drive.google.com/file/d/1JTLx4fkZP5AwBsL-5_mE49o71bBY4H_E/view?usp=sharing) on Google Drive.
-
-`Staging` <-> `Takeoff` -> `Ascending` -> `Descending` -> `Landing` -> `Recovery` <-> `Recovered`
 
 ![Mission State Diagram](documents/software_mission_state_diagram.png?raw=true)
 
-## State Descriptions
+### State Descriptions
 
 **Staging:** While waiting to launch and on the ground, used to prepare the vehicle and sub-systems.
 
@@ -97,7 +98,7 @@ The following states have been defined in the state machine, for a more graphica
 
 **Receovered:** When recovery has been detected but power-off is pending.
 
-## State Table
+### State Table
 
 |State|Configuration|Entrance Condititions|Exit Conditions|
 |-----|-------------|---------------------|---------------|
@@ -108,3 +109,36 @@ The following states have been defined in the state machine, for a more graphica
 |Landing   |<ul><li>Telemetry Reporting Frequency: 1/60 Hz</li><li>Telemetry Logging Frequency: 1/5 Hz</li><li>Position Reporting Frequency: 1/5 Hz</li><li>LEDs: On</li><li>Beeper: On</li></ul>|<ul><li>Altitude decreases below 500m.</li></ul>|<ul><li>Accelerometer stops detecting motion or altitude stops changing for 5 consecutive seconds.</li></ul>|
 |Recovery  |<ul><li>Telemetry Reporting Frequency: 1/300 Hz</li><li>Telemetry Logging Frequency: 1/5 Hz</li><li>Position Reporting Frequency: 1/300 Hz</li><li>LEDs: On</li><li>Beeper: On</li></ul>|<ul><li>Accelerometer stops detecting motion or altitude stops changing for 5 consecutive seconds.</li><li>After waiting 5 minutes in Recovered mode.</li></ul>|<ul><li>Silence button is pressed.</li></ul>|
 |Recovered |<ul><li>Telemetry Reporting Frequency: 1/300 Hz</li><li>Telemetry Logging Frequency: 1/5 Hz</li><li>Position Reporting Frequency: 1/300 Hz</li><li>LEDs: Off</li><li>Beeper: Off</li></ul>|<ul><li>Silence button is pressed.</li></ul>|<ul><li>After waiting 5 minutes in Recovered mode.</li></ul>|
+
+## Buffer
+
+## Timer
+The Timer library provides basic timing functionaly, this is used to create time-outs for different reasons within the code. It allows the main program loop to run really fast even when there are tasks that might take minutes or even hours without having to wait for these things to complete by using delays (the basic Arduino way). 
+
+This is essentially a primitive way of "multi-threading" on a microcontroller as many tasks can be done "in parallel", i.e. the execution of different elements of different tasks can be done asynchronously.
+
+## Log
+The Log library provides a simple interface for event logging withing the program. This allows for easy debugging of the software and provides many useful features such as log levels.
+
+## Data Log
+The Data Log librariy provides a way to log complex information to a file on an SD card. This could be telemetry information or other state information that is sensed during the flight of the vehicle. These logs can then be read back post-flight for analysis.
+
+## Telemetry
+The Telemetry library provides a level of abstraction from the sensors that are being used to get telemetry information (GPS, IMU, etc) and provides the latest telemetry in an easily digestible manner for higher level applications.
+
+## Simple HDLC
+The Simple HDLC (High-level Data Link Control) library provides basic messaging functionaly including message serialization, deserialization, CRC checking, etc. This wraps different byte-wise interfaces (currently implemented only on serial ports) to create a generic message interface.
+
+## Simple Message Protocol
+The Simple Message Protocol library (SMP) wraps the SimpleHDLC library at an even higher level, by pre-defining different types of messages and providing encoding and decoding functions for those messages. This library can be thought of as defining a dialect or language between the microcontroller and any other external systems it is messaging with.
+
+## External Libraries
+The project also depends on a few externally developed libraries as listed here.
+
+- TinyGPS++
+- Adafruit Sensor
+- Adafruit 10DOF
+- Adafruit BMP085
+- Adafruit L3GD20
+- Adafruit LSM303DLHC
+
