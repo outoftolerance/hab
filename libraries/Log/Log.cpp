@@ -1,38 +1,41 @@
 #include "Log.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-Log::Log(Stream& terminal, bool debug) :
+Log::Log(Stream& terminal, LOG_LEVELS log_level) :
   output_(terminal),
-  debug_(debug)
+  log_level_(log_level)
 {
 
 }
 
 /*------------------------------Public Methods------------------------------*/
 
-void Log::info(const char message[])
+void Log::event(LOG_LEVELS level, const char message[])
 {
-  output_.print("INFO: ");
-  output_.println(message);
-}
+    if(level >= log_level_)
+    {
+        String preamble;
 
-void Log::debug(const char message[])
-{
-  if(debug_)
-  {
-    output_.print("DEBUG: ");
-    output_.println(message);
-  }
-}
+        switch(level)
+        {
+            case LOG_LEVELS::DEBUG:
+                preamble = "DEBUG   | ";
+                break;
+            case LOG_LEVELS::INFO:
+                preamble = "INFO    | ";
+                break;
+            case LOG_LEVELS::WARNING:
+                preamble = "WARNING | ";
+                break;
+            case LOG_LEVELS::ERROR:
+                preamble = "ERROR   | ";
+                break;
+            case LOG_LEVELS::FATAL:
+                preamble = "FATAL   | ";
+                break;
+        }
 
-void Log::error(const char message[])
-{
-  output_.print("ERROR: ");
-  output_.println(message);
-}
-
-void Log::fatal(const char message[])
-{
-  output_.print("FATAL: ");
-  output_.println(message);
+        output_.println(preamble);
+        output_.println(message);
+    }
 }

@@ -8,8 +8,6 @@
 #include <MissionState.h>
 #include <HardwareConfiguration.h>
 
-#define DEBUG false                                                 /**< Global debug flag, changes behaviour and outputs */
-
 /*
  * Creating some new Serial ports using M0 SERCOM for peripherals
  *
@@ -72,7 +70,7 @@ void handleMessageCallback(hdlcMessage message);
 
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
-Log logger(logging_output_stream, DEBUG);                                   /**< Log object */
+Log logger(logging_output_stream, LOG_LEVELS::DEBUG);                       /**< Log object */
 Telemetry telemetry(gps_input_stream);                                      /**< Telemetry object */
 
 MissionState mission_state;         /**< Mission state state machine object */
@@ -93,41 +91,39 @@ void setup() {
     
     //Start debug serial port
     static_cast<HardwareSerial&>(logging_output_stream).begin(57600);
-    logger.info("HAB systems starting...");
+    logger.event(LOG_LEVELS::INFO, "HAB systems starting...");
 
     //Start GPS Serial port
-    logger.info("Starting GPS serial port...");
+    logger.event(LOG_LEVELS::INFO, "Starting GPS serial port...");
     static_cast<HardwareSerial&>(gps_input_stream).begin(57600);
 
     //Start radio modem Serial port
-    logger.info("Starting radio modem serial port...");
+    logger.event(LOG_LEVELS::INFO, "Starting radio modem serial port...");
     static_cast<HardwareSerial&>(radio_input_output_stream).begin(57600);
     pinPeripheral(10, PIO_SERCOM);
     pinPeripheral(11, PIO_SERCOM);
 
     //Start cellular modem Serial port
-    logger.info("Starting cellular modem serial port...");
+    logger.event(LOG_LEVELS::INFO, "Starting cellular modem serial port...");
     static_cast<HardwareSerial&>(cellular_input_output_stream).begin(57600);
     pinPeripheral(3, PIO_SERCOM_ALT);
     pinPeripheral(4, PIO_SERCOM_ALT);
 
     //Initialise state machine
-    logger.info("Initialising Mission State subsystem...");
+    logger.event(LOG_LEVELS::INFO, "Initialising Mission State subsystem...");
     if(!mission_state.set(MISSION_STATES::STAGING))
     {
-        logger.fatal("Failed to initialise Mission State subsystem!");
+        logger.event(LOG_LEVELS::FATAL, "Failed to initialise Mission State subsystem!");
         while(1);
     }
-    logger.info("Mission State initialised successfully!");
 
     //Initialise the telemetry system
-    logger.info("Initialising Telemetry subsystem...");
+    logger.event(LOG_LEVELS::INFO, "Initialising Telemetry subsystem...");
     if(!telemetry.init())
     {
-        logger.fatal("Failed to initialise Telemetry subsystem!");
+        logger.event(LOG_LEVELS::FATAL, "Failed to initialise Telemetry subsystem!");
         while(1);
     }
-    logger.info("Telemetry initialised successfully!");
 
     //Set initial program timers
     setTimers(mission_state.getFunction());
@@ -148,7 +144,7 @@ void loop() {
         /*---Execute program elements based on timers---*/
 
         //Get launch and silsnce switch states
-        logger.info("Getting updated status of switches.");
+        logger.event(LOG_LEVELS::INFO, "Getting updated status of switches.");
         launch_switch_state = digitalRead(LAUNCH_SWITCH);
         silence_switch_state = digitalRead(SILENCE_SWITCH);
 
@@ -156,14 +152,14 @@ void loop() {
         if(timer_telemetry_check.check())
         {
             //Get latest telemetry
-            logger.info("Getting update from Telemetry subsystem.");
+            logger.event(LOG_LEVELS::INFO, "Getting update from Telemetry subsystem.");
             if(!telemetry.get(current_telemetry))
             {
-                logger.error("Failed to get update from Telemetry subsystem!");
+                logger.event(LOG_LEVELS::ERROR, "Failed to get update from Telemetry subsystem!");
             }
             else
             {
-                logger.info("Telemetry updated completed.");
+                logger.event(LOG_LEVELS::DEBUG, "Telemetry updated completed.");
                 timer_telemetry_check.reset();
             }
         }
@@ -207,19 +203,19 @@ void loop() {
         /*---Update program controls--*/
 
         //Update mission state
-        logger.info("Updating Mission State subsystem.");
+        logger.event(LOG_LEVELS::INFO, "Updating Mission State subsystem.");
         if(!mission_state.update(&current_telemetry, launch_switch_state, silence_switch_state))
         {
-            logger.error("Failed to update Mission State subsystem!");
+            logger.event(LOG_LEVELS::ERROR, "Failed to update Mission State subsystem!");
         }
         else
         {
             current_mission_state_function = mission_state.getFunction();
-            logger.info("Mission State subsystem update completed.");
+            logger.event(LOG_LEVELS::DEBUG, "Mission State subsystem update completed.");
         }
 
         //Update program timers based on state
-        logger.info("Setting system timers based on mission state.");
+        logger.event(LOG_LEVELS::INFO, "Setting system timers based on mission state.");
         setTimers(current_mission_state_function);
 
         /*---Misc---*/
@@ -228,7 +224,7 @@ void loop() {
         if(DEBUG)
         {
             //Send a test message
-            logger.info("Sending testing message.");
+            logger.event(LOG_LEVELS::DEBUG, "Sending testing message.");
             hdlcMessage test_message;
             test_message.command = MESSAGE_TYPE_REPORT_TELEMETRY;
             test_message.length = 1;
