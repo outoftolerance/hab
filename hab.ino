@@ -14,13 +14,13 @@
  * Creating some new Serial ports using M0 SERCOM for peripherals
  *
  * Notes for Adafruit Feather M0 pre-defined Serial ports:
- *     - Serial goes to USB port
- *     - Serial1 is broken out on the board and uses pins 1 (TX), 0 (RX)
- *     - Serial5 is on pins 30 (TX), 31 (RX) but not exposed on the board
+ *     - Serial goes to USB port interface (PA24, PA25)
+ *     - Serial1 is broken out on the board and uses pins 1/PA10 (TX), 0/PA11 (RX)
+ *     - Serial5 is on pins 30/PB22 (TX), 31/PB23 (RX) but not exposed on the board
  * 
  * We are adding the following:
- *     - Serial2 on pins 10 (TX), 11 (RX)
- *     - Serial3 on pins 4 (TX), 3 (RX)
+ *     - Serial2 on pins 10/PA18 (TX), 11/PA16 (RX)
+ *     - Serial3 on pins 4/PA08 (TX), 3/PA09 (RX)
  */
 Uart Serial2 (&sercom1, 11, 10, SERCOM_RX_PAD_0, UART_TX_PAD_2);    /**< Creating a second serial port using SERCOM1 */
 Uart Serial3 (&sercom2, 3, 4, SERCOM_RX_PAD_1, UART_TX_PAD_0);      /**< Creating a third serial port using SERCOM2 */
