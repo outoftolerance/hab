@@ -93,7 +93,16 @@ This communications interface will be used to communicate the following informat
 - Position from the vehicle
 
 ## Sensors
+There are some sensors needed for basic functionality of the balloon (such as a GPS receiver) and others are just for fun!
 
+### GPS
+A GPS receiver is a basic requirement for being able to position the vehicle and track it during its mission. We chose a basic off-the-shelf GPS receiver from Adafruit that has been used in high altitude balloon projects with success in the past, the [Adafruit GPS V3](https://www.adafruit.com/product/746).
+
+### IMU
+An IMU is added to give basic orentation information, as well as being able to detect freefall and other events such as touchdown. We chose a simple all-in-one IMU board, the [Adafruit 10DOF](https://www.adafruit.com/product/1604). This is no longer available but still functions great and we already had one.
+
+### Atmospheric
+None of these sensors are really neded, however the data they produce is fun to look at after the flight and get an idea of the make-up of our atmosphere! We chose to add temperature, humidity, and gas sensors to the project, the specific models and boards haven't been defined yet but will come.
 
 ## Interconnects
 The different elements of the system are connected together using Serial, I2C, and SPI interfaces, as well as a few GPIO used for some smaller peripherals. The folliwing diagram shows how each element of the system is connected.
