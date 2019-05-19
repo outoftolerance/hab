@@ -42,9 +42,9 @@ void SERCOM2_Handler()
 }
 
 Stream& logging_output_stream = Serial;             /**< Logging output stream */
-Stream& gps_input_stream = Serial2;                 /**< GPS device input stream */
-Stream& radio_input_output_stream = Serial3;        /**< Radio input output stream */
-Stream& cellular_input_output_stream = Serial5;     /**< Cellular output stream (Serial5 pre-defined for Feather M0 on SERCOM5) */
+Stream& gps_input_stream = Serial1;                 /**< GPS device input stream */
+Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream */
+Stream& cellular_input_output_stream = Serial3;     /**< Cellular output stream (Serial5 pre-defined for Feather M0 on SERCOM5) */
 
 enum MESSAGE_TYPES {
     MESSAGE_TYPE_REPORT_TELEMETRY,
@@ -98,18 +98,18 @@ void setup() {
     //Start GPS Serial port
     logger.info("Starting GPS serial port...");
     static_cast<HardwareSerial&>(gps_input_stream).begin(57600);
-    pinPeripheral(10, PIO_SERCOM);
-    pinPeripheral(11, PIO_SERCOM);
 
     //Start radio modem Serial port
     logger.info("Starting radio modem serial port...");
     static_cast<HardwareSerial&>(radio_input_output_stream).begin(57600);
-    pinPeripheral(3, PIO_SERCOM_ALT);
-    pinPeripheral(4, PIO_SERCOM_ALT);
+    pinPeripheral(10, PIO_SERCOM);
+    pinPeripheral(11, PIO_SERCOM);
 
     //Start cellular modem Serial port
     logger.info("Starting cellular modem serial port...");
     static_cast<HardwareSerial&>(cellular_input_output_stream).begin(57600);
+    pinPeripheral(3, PIO_SERCOM_ALT);
+    pinPeripheral(4, PIO_SERCOM_ALT);
 
     //Initialise state machine
     logger.info("Initialising Mission State subsystem...");
