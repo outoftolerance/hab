@@ -62,7 +62,35 @@ The following table shows the pinout for the `ATSAMD21G18A-U` SERCOM and the use
 |PB03|D25 / RX LED|SERCOM5.1|||
 
 ## Communications
+Communications is one of the major difficulties when designing a High Altitude Balloon because of the distances that it has to travel and the fact that the system needs to be recovered at a random, unknown, future location (or you lose all your hard work!). For this reason, there are multiple redundant communications interfaces that have been designed into the vehicle.
 
+### Packet Radio
+The first, and simplest, form of communication between the vehicle and us on the ground is a packet radio. Essentially this works as a serial port over radio waves and allows data to be passed from the vehicle to the ground (such as position information) as well as allowing commands to be send to the vehicle during operation.
+
+We chose an [RFD900+ radio modem](http://store.rfdesign.com.au/rfd-900p-modem/) for this project, it is well known within the drone industry as a reliable and well-performing radio that can be configured and paired with different antenna systems to provide exceptional range.
+
+This communications interface will be used to communicate the following information:
+- Telemetry from vehicle
+- Position from vehicle
+- Events from vehicle
+- Commands to vehicle
+
+### Cellular
+Secondly we will use a cellular modem to send and receive data from the ground to the vehicle. This method is not reliable as a tracking system for the vehicle throughtout the flight, however is robust at low altitudes within cellular network reception range. It is also a flexible interface, it can either send text messages to us, or data over the internet, or a combination of both!
+
+The reason we added this radio was as a backup in-case the other tracking systems fail, or when at low altitudes, radio signals from the other two methods are obscured by terrain or ground objects where the balloon lands. The cellular connection should be able to text message us with the location of the vehicle at low altitudes and when at rest.
+
+The communucations interface will be used to communicate the following information:
+- Position from the vehicle
+- Events from the vehicle
+
+### APRS
+An APRS (Automatic Packet Reporting System) radio has also been added, this allows for the tracking of the balloon through the HAM radio APRS network of receivers, and potentially from our own receiver. The system is very limited in terms of how frequently data can be transmitted and how much data can be transmitted at a time, however it is very very long range and is well supported as a method of tracking vehicles. 
+
+We chose the [MicroTrak 2000](https://drive.google.com/open?id=1uPaUfZ47ibVQPEURd_sj6lUmIUkslmQF) APRS transmitter from Byonics for this project because of its small form-factor, high power, and easy integration into our custom electical and mechanical design. This model is no longer in production and has been superceded by an even smaller form-factor device, the MicroTrak 2001.
+
+This communications interface will be used to communicate the following information:
+- Position from the vehicle
 
 ## Sensors
 
