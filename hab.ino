@@ -68,8 +68,8 @@ void setTimers(MissionStateFunction function);
 void handleMessageCallback(hdlcMessage message);
 void handleMessageTelemetryReport(hdlcMessage message);
 void handleMessagePositionReport(hdlcMessage message);
-void handleMessageCommandTakeoff(hdlcMessage message);
-void handleMessageCommandAbortTakeoff(hdlcMessage message);
+void handleMessageCommandArm(hdlcMessage message);
+void handleMessageCommandDisarm(hdlcMessage message);
 void handleMessageCommandSetState(hdlcMessage message);
 void handleMessageProtoAck(hdlcMessage message);
 void handleMessageProtoNack(hdlcMessage message);
@@ -165,7 +165,7 @@ void loop() {
     {
         //Get launch and silsnce switch states
         logger.event(LOG_LEVELS::DEBUG, "Getting updated status of switches.");
-        launch_switch_state = digitalRead(LAUNCH_SWITCH);
+        launch_switch_state = digitalRead(ARM_SWITCH);
         silence_switch_state = digitalRead(SILENCE_SWITCH);
 
         //Telemetry Update
@@ -199,6 +199,7 @@ void loop() {
         if(timer_telemetry_log.check())
         {
             logger.event(LOG_LEVELS::DEBUG, "Logging telemetry to storage.");
+            //Telemetry log function
 
             timer_telemetry_log.reset();
         }
@@ -281,11 +282,11 @@ void handleMessageCallback(hdlcMessage message)
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ARM:
             logger.event(LOG_LEVELS::INFO, "Received takeoff command.");
-            handleMessageCommandTakeoff(message);
+            handleMessageCommandArm(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_DISARM:
             logger.event(LOG_LEVELS::INFO, "Received abort takeoff message.");
-            handleMessageCommandAbortTakeoff(message);
+            handleMessageCommandDisarm(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_STATE:
             logger.event(LOG_LEVELS::INFO, "Received set state command.");
@@ -294,10 +295,6 @@ void handleMessageCallback(hdlcMessage message)
         case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK:
             logger.event(LOG_LEVELS::INFO, "Received acknowledgement.");
             handleMessageProtoAck(message);
-            break;
-        case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_NACK:
-            logger.event(LOG_LEVELS::INFO, "Received no acknowledgement.");
-            handleMessageProtoNack(message);
             break;
     }
 }
