@@ -74,6 +74,11 @@ void handleMessageCommandSetState(hdlcMessage message);
 void handleMessageProtoAck(hdlcMessage message);
 void handleMessageProtoNack(hdlcMessage message);
 
+void sendTelemetryReport(TelemetryStruct& telemetry);
+void logTelemetry(TelemetryStruct& telemetry);
+void sendPositionReport(TelemetryStruct& telemetry);
+void sendAck(MESSAGE_TYPES type);
+
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
 Log logger(logging_output_stream, LOG_LEVELS::DEBUG);                       /**< Log object */
@@ -95,8 +100,10 @@ void setup() {
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(LAUNCH_SWITCH, INPUT);
+    pinMode(ARM_SWITCH, INPUT);
     pinMode(SILENCE_SWITCH, INPUT);
+    pinMode(LED_EXTERNAL, OUTPUT);
+    pinMode(BUZZER_EXTERNAL, OUTPUT);
     
     //Start debug serial port
     logger.init();
@@ -208,13 +215,21 @@ void loop() {
         //Buzzer Beeper
         if(current_mission_state_function.beeper_enabled)
         {
-            //stuff
+            digitalWrite(BUZZER_EXTERNAL, true);
+        }
+        else
+        {
+            digitalWrite(BUZZER_EXTERNAL, false);
         }
 
         //LED Blinker
         if(current_mission_state_function.led_enabled)
         {
-            //stuff
+            digitalWrite(LED_EXTERNAL, true);
+        }
+        else
+        {
+            digitalWrite(LED_EXTERNAL, false);
         }
 
         //Update mission state
@@ -343,7 +358,7 @@ void logTelemetry(TelemetryStruct& telemetry)
 void sendPositionReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
-    message.command = MESSAGE_TYPE_REPORT_POSITION;
+    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION;
     message.length = 3 * sizeof(float);
 
     int i = 0;
@@ -353,6 +368,17 @@ void sendPositionReport(TelemetryStruct& telemetry)
     {
         message.payload[i] = *temp_pointer++;
     }
+
+    radio.send(message);
+    cellular.send(message);
+}
+
+void sendAck(MESSAGE_TYPES type)
+{
+    hdlcMessage message;
+    message.command = MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK;
+    message.length = 1;
+    message.payload[0] = type;
 
     radio.send(message);
     cellular.send(message);
