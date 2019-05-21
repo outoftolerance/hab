@@ -20,10 +20,12 @@ class Log {
 	public:
 		/**
 		* @brief      Logger actual constructor
-		* @param      terminal  Stream pointer to output stream used
+		* @param      port  	Stream pointer to output stream used
 		* @param[in]  debug     Boolean to activate debug mode
 		*/
-		Log(Stream& terminal, LOG_LEVELS log_level);
+		Log(Stream& port, LOG_LEVELS log_level);
+
+		void init();
 
 		/**
 		* @brief      Infomation log level
@@ -32,8 +34,8 @@ class Log {
 		void event(LOG_LEVELS level, const char message[]);
 
 	private:
-		Stream& output_;		/**< Reference to stream used for output */
-		bool log_level_; 			/**< Debug mode flag */
+		Stream& output_;			/**< Reference to stream used for output */
+		int log_level_; 			/**< Debug mode flag */
 };
 
 #endif

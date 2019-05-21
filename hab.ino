@@ -39,21 +39,20 @@ void SERCOM2_Handler()
   Serial3.IrqHandler();
 }
 
-Stream& logging_output_stream = Serial;             /**< Logging output stream */
-Stream& gps_input_stream = Serial1;                 /**< GPS device input stream */
-Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream */
-Stream& cellular_input_output_stream = Serial3;     /**< Cellular output stream (Serial5 pre-defined for Feather M0 on SERCOM5) */
+Stream& logging_output_stream = Serial;             /**< Logging output stream, this is of type Serial_ */
+Stream& gps_input_stream = Serial1;                 /**< GPS device input stream, this is of type HardwareSerial */
+Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream, this is of type HardwareSerial */
+Stream& cellular_input_output_stream = Serial3;     /**< Cellular input output stream, this is of type HardwareSerial */
 
 enum MESSAGE_TYPES {
     MESSAGE_TYPE_REPORT_TELEMETRY,
     MESSAGE_TYPE_REPORT_POSITION,
 
-    MESSAGE_TYPE_COMMAND_TAKEOFF,
-    MESSAGE_TYPE_COMMAND_ABORT_TAKEOFF,
+    MESSAGE_TYPE_COMMAND_ARM,
+    MESSAGE_TYPE_COMMAND_DISARM,
     MESSAGE_TYPE_COMMAND_SET_STATE,
 
-    MESSAGE_TYPE_PROTO_ACK,
-    MESSAGE_TYPE_PROTO_NACK
+    MESSAGE_TYPE_PROTO_ACK
 };
 
 /**
@@ -67,6 +66,13 @@ void setTimers(MissionStateFunction function);
  * @param[in]  message  The message to be handled
  */
 void handleMessageCallback(hdlcMessage message);
+void handleMessageTelemetryReport(hdlcMessage message);
+void handleMessagePositionReport(hdlcMessage message);
+void handleMessageCommandTakeoff(hdlcMessage message);
+void handleMessageCommandAbortTakeoff(hdlcMessage message);
+void handleMessageCommandSetState(hdlcMessage message);
+void handleMessageProtoAck(hdlcMessage message);
+void handleMessageProtoNack(hdlcMessage message);
 
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
@@ -84,21 +90,24 @@ Timer timer_telemetry_log;          /**< timer sets interval between logging tel
  * @details Initialises all system componenets at start-up
  */
 void setup() {
+    //Sleep 5s so that debug can connect
+    delay(5000);
+
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(LAUNCH_SWITCH, INPUT);
     pinMode(SILENCE_SWITCH, INPUT);
     
     //Start debug serial port
-    static_cast<HardwareSerial&>(logging_output_stream).begin(57600);
+    logger.init();
     logger.event(LOG_LEVELS::INFO, "HAB systems starting...");
 
-    //Start GPS Serial port
-    logger.event(LOG_LEVELS::INFO, "Starting GPS serial port...");
-    static_cast<HardwareSerial&>(gps_input_stream).begin(57600);
+    //Start Telemetry package
+    logger.event(LOG_LEVELS::INFO, "Starting Telemetry...");
+    telemetry.init();
 
     //Start radio modem Serial port
-    logger.event(LOG_LEVELS::INFO, "Starting radio modem serial port...");
+    logger.event(LOG_LEVELS::INFO, "Starting radio modem...");
     static_cast<HardwareSerial&>(radio_input_output_stream).begin(57600);
     pinPeripheral(10, PIO_SERCOM);
     pinPeripheral(11, PIO_SERCOM);
@@ -124,7 +133,7 @@ void setup() {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Telemetry subsystem!");
         while(1);
     }
-
+    
     //Set initial program timers
     setTimers(mission_state.getFunction());
 }
@@ -139,12 +148,16 @@ void loop() {
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
     TelemetryStruct current_telemetry;                      /**< Current telemetry */
 
+    //Start system timers
+    timer_telemetry_check.start();
+    timer_telemetry_report.start();
+    timer_telemetry_log.start();
+    timer_position_report.start();
+
     while(1)
     {
-        /*---Execute program elements based on timers---*/
-
         //Get launch and silsnce switch states
-        logger.event(LOG_LEVELS::INFO, "Getting updated status of switches.");
+        logger.event(LOG_LEVELS::DEBUG, "Getting updated status of switches.");
         launch_switch_state = digitalRead(LAUNCH_SWITCH);
         silence_switch_state = digitalRead(SILENCE_SWITCH);
 
@@ -152,7 +165,8 @@ void loop() {
         if(timer_telemetry_check.check())
         {
             //Get latest telemetry
-            logger.event(LOG_LEVELS::INFO, "Getting update from Telemetry subsystem.");
+            logger.event(LOG_LEVELS::DEBUG, "Getting update from Telemetry subsystem.");
+            /*
             if(!telemetry.get(current_telemetry))
             {
                 logger.event(LOG_LEVELS::ERROR, "Failed to get update from Telemetry subsystem!");
@@ -162,11 +176,13 @@ void loop() {
                 logger.event(LOG_LEVELS::DEBUG, "Telemetry updated completed.");
                 timer_telemetry_check.reset();
             }
+            */
         }
 
         //Telemetry Report
         if(timer_telemetry_report.check())
         {
+            logger.event(LOG_LEVELS::DEBUG, "Sending telemetry report message.");
             sendTelemetryReport(current_telemetry);
 
             timer_telemetry_report.reset();
@@ -175,7 +191,7 @@ void loop() {
         //Telemetry Log
         if(timer_telemetry_log.check())
         {
-            //stuff
+            logger.event(LOG_LEVELS::DEBUG, "Logging telemetry to storage.");
 
             timer_telemetry_log.reset();
         }
@@ -183,6 +199,7 @@ void loop() {
         //Position Report
         if(timer_position_report.check())
         {
+            logger.event(LOG_LEVELS::DEBUG, "Sending position report message.");
             sendPositionReport(current_telemetry);
 
             timer_position_report.reset();
@@ -200,10 +217,8 @@ void loop() {
             //stuff
         }
 
-        /*---Update program controls--*/
-
         //Update mission state
-        logger.event(LOG_LEVELS::INFO, "Updating Mission State subsystem.");
+        logger.event(LOG_LEVELS::DEBUG, "Updating Mission State subsystem.");
         if(!mission_state.update(&current_telemetry, launch_switch_state, silence_switch_state))
         {
             logger.event(LOG_LEVELS::ERROR, "Failed to update Mission State subsystem!");
@@ -215,24 +230,15 @@ void loop() {
         }
 
         //Update program timers based on state
-        logger.event(LOG_LEVELS::INFO, "Setting system timers based on mission state.");
+        logger.event(LOG_LEVELS::DEBUG, "Setting system timers based on mission state.");
         setTimers(current_mission_state_function);
 
-        /*---Misc---*/
-
-        //Set a test message if in debug mode
-        if(DEBUG)
-        {
-            //Send a test message
-            logger.event(LOG_LEVELS::DEBUG, "Sending testing message.");
-            hdlcMessage test_message;
-            test_message.command = MESSAGE_TYPE_REPORT_TELEMETRY;
-            test_message.length = 1;
-            test_message.payload[0] = (uint8_t)8;
-
-            radio.send(test_message);
-            cellular.send(test_message);
-        }
+        digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+        logger.event(LOG_LEVELS::DEBUG, "LED On");
+        delay(1000);                       // wait for a second
+        digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+        logger.event(LOG_LEVELS::DEBUG, "LED Off");
+        delay(1000);
     }
 }
 
@@ -246,23 +252,69 @@ void setTimers(MissionStateFunction function)
 
 void handleMessageCallback(hdlcMessage message)
 {
+    logger.event(LOG_LEVELS::INFO, "Received a message!");
+
     switch(message.command)
     {
         case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_TELEMETRY:
+            logger.event(LOG_LEVELS::INFO, "Received telemetry report.");
+            handleMessageTelemetryReport(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION:
+            logger.event(LOG_LEVELS::INFO, "Received position report.");
+            handleMessagePositionReport(message);
             break;
-        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_TAKEOFF:
+        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ARM:
+            logger.event(LOG_LEVELS::INFO, "Received takeoff command.");
+            handleMessageCommandTakeoff(message);
             break;
-        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ABORT_TAKEOFF:
+        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_DISARM:
+            logger.event(LOG_LEVELS::INFO, "Received abort takeoff message.");
+            handleMessageCommandAbortTakeoff(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_STATE:
+            logger.event(LOG_LEVELS::INFO, "Received set state command.");
+            handleMessageCommandSetState(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK:
+            logger.event(LOG_LEVELS::INFO, "Received acknowledgement.");
+            handleMessageProtoAck(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_NACK:
+            logger.event(LOG_LEVELS::INFO, "Received no acknowledgement.");
+            handleMessageProtoNack(message);
             break;
     }
+}
+
+void handleMessageTelemetryReport(hdlcMessage message)
+{
+    logger.event(LOG_LEVELS::WARNING, "Ignoring telemetry report message.");
+}
+
+void handleMessagePositionReport(hdlcMessage message)
+{
+    logger.event(LOG_LEVELS::WARNING, "Ignoring position report message.");
+}
+
+void handleMessageCommandArm(hdlcMessage message)
+{
+
+}
+
+void handleMessageCommandDisarm(hdlcMessage message)
+{
+
+}
+
+void handleMessageCommandSetState(hdlcMessage message)
+{
+
+}
+
+void handleMessageProtoAck(hdlcMessage message)
+{
+
 }
 
 void sendTelemetryReport(TelemetryStruct& telemetry)

@@ -140,6 +140,8 @@ bool MissionState::update(TelemetryStruct* telemetry, bool launch_switch, bool s
 				recovered_timeout_.start();
 			}
 	}
+
+	return true;
 }
 
 bool MissionState::set(int state)

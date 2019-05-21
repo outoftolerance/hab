@@ -1,14 +1,19 @@
 #include "Log.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-Log::Log(Stream& terminal, LOG_LEVELS log_level) :
-  output_(terminal),
+Log::Log(Stream& port, LOG_LEVELS log_level) :
+  output_(port),
   log_level_(log_level)
 {
 
 }
 
 /*------------------------------Public Methods------------------------------*/
+
+void Log::init()
+{
+    static_cast<Serial_&>(output_).begin(57600);
+}
 
 void Log::event(LOG_LEVELS level, const char message[])
 {
@@ -35,7 +40,7 @@ void Log::event(LOG_LEVELS level, const char message[])
                 break;
         }
 
-        output_.println(preamble);
+        output_.print(preamble);
         output_.println(message);
     }
 }
