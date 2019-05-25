@@ -88,6 +88,12 @@ bool Telemetry::get(TelemetryStruct& telemetry)
 		return false;
 	}
 
+	//Correct magnetometer values based on tilt
+	if (!sensor_board_.magTiltCompensation(SENSOR_AXIS_Z, &magnetometer_data_, &accelerometer_data_))
+	{
+	  return false;
+	}
+
 	//Calculate heading from magnetometer
 	if (!sensor_board_.magGetOrientation(SENSOR_AXIS_Z, &magnetometer_data_, &orientation_))
 	{

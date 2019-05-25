@@ -1,9 +1,12 @@
 #include <Arduino.h>
 #include "wiring_private.h" // For ATSAMD M0 pinPeripheral() function
 
+#include <SPI.h>
+#include <SD.h>
 #include <Timer.h>
 #include <Telemetry.h>
 #include <Log.h>
+#include <DataLog.h>
 #include <SimpleHDLC.h>
 #include <MissionState.h>
 #include <HardwareConfiguration.h>
@@ -82,6 +85,7 @@ void sendAck(MESSAGE_TYPES type);
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
 Log logger(logging_output_stream, LOG_LEVELS::DEBUG);                       /**< Log object */
+DataLog telemetry_logger("telemetry.csv","latitude,longitude,altitude,altitude_barometric,roll,pitch,heading,course,temperature,pressure", SD_CHIP_SELECT);
 Telemetry telemetry(gps_input_stream);                                      /**< Telemetry object */
 
 MissionState mission_state;         /**< Mission state state machine object */
@@ -109,10 +113,6 @@ void setup() {
     logger.init();
     logger.event(LOG_LEVELS::INFO, "HAB systems starting...");
 
-    //Start Telemetry package
-    logger.event(LOG_LEVELS::INFO, "Starting Telemetry...");
-    telemetry.init();
-
     //Start radio modem Serial port
     logger.event(LOG_LEVELS::INFO, "Starting radio modem...");
     static_cast<HardwareSerial&>(radio_input_output_stream).begin(57600);
@@ -133,6 +133,9 @@ void setup() {
         while(1);
     }
 
+    //Set initial program timers
+    setTimers(mission_state.getFunction());
+
     //Initialise the telemetry system
     logger.event(LOG_LEVELS::INFO, "Initialising Telemetry subsystem...");
     if(!telemetry.init())
@@ -140,9 +143,14 @@ void setup() {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Telemetry subsystem!");
         while(1);
     }
-    
-    //Set initial program timers
-    setTimers(mission_state.getFunction());
+
+    //Start telemetry data logger
+    logger.event(LOG_LEVELS::INFO, "Initialising Telemetry data logger...");
+    if(!telemetry_logger.init())
+    {
+        logger.event(LOG_LEVELS::FATAL, "Failed to initialise Telemetry data logger!");
+        while(1);
+    }
 }
 
 /**
@@ -356,11 +364,6 @@ void sendTelemetryReport(TelemetryStruct& telemetry)
     cellular.send(message);
 }
 
-void logTelemetry(TelemetryStruct& telemetry)
-{
-
-}
-
 void sendPositionReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
@@ -388,4 +391,11 @@ void sendAck(MESSAGE_TYPES type)
 
     radio.send(message);
     cellular.send(message);
+}
+
+void logTelemetry(TelemetryStruct& telemetry)
+{
+    float temp_telemetry_array[10];
+
+    telemetry_logger.entry(temp_telemetry_array, 10, true);
 }
