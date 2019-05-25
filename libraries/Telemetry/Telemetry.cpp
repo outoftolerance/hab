@@ -111,12 +111,12 @@ bool Telemetry::get(TelemetryStruct& telemetry)
 	//Assign to output struct
 	telemetry.latitude = (float)gps_.location.lat();
 	telemetry.longitude = (float)gps_.location.lng();
+	telemetry.altitude = (float)gps_.altitude.meters();
+	telemetry.altitude_barometric = altitude_barometric;
 	telemetry.roll = orientation_.roll;
 	telemetry.pitch = orientation_.pitch;
 	telemetry.heading = orientation_.heading;
 	telemetry.course = (float)gps_.course.deg();
-	telemetry.altitude = (float)gps_.altitude.meters();
-	telemetry.altitude_barometric = altitude_barometric;
 	telemetry.temperature = temperature;
 	telemetry.pressure = barometer_data_.pressure;
 

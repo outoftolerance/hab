@@ -173,7 +173,7 @@ void loop() {
         {
             //Get latest telemetry
             logger.event(LOG_LEVELS::DEBUG, "Getting update from Telemetry subsystem.");
-            /*
+
             if(!telemetry.get(current_telemetry))
             {
                 logger.event(LOG_LEVELS::ERROR, "Failed to get update from Telemetry subsystem!");
@@ -183,7 +183,6 @@ void loop() {
                 logger.event(LOG_LEVELS::DEBUG, "Telemetry updated completed.");
                 timer_telemetry_check.reset();
             }
-            */
         }
 
         //Telemetry Report
@@ -250,11 +249,21 @@ void loop() {
         setTimers(current_mission_state_function);
 
         digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-        logger.event(LOG_LEVELS::DEBUG, "LED On");
         delay(1000);                       // wait for a second
         digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-        logger.event(LOG_LEVELS::DEBUG, "LED Off");
         delay(1000);
+
+        //Print a bunch of debug information
+        logger.event(LOG_LEVELS::DEBUG, "Current GPS Latitude   ", current_telemetry.latitude);
+        logger.event(LOG_LEVELS::DEBUG, "Current GPS Longitude  ", current_telemetry.longitude);
+        logger.event(LOG_LEVELS::DEBUG, "Current GPS Altitude   ", current_telemetry.altitude);
+        logger.event(LOG_LEVELS::DEBUG, "Current GPS Course     ", current_telemetry.course);
+        logger.event(LOG_LEVELS::DEBUG, "Current IMU Roll       ", current_telemetry.roll);
+        logger.event(LOG_LEVELS::DEBUG, "Current IMU Pitch      ", current_telemetry.pitch);
+        logger.event(LOG_LEVELS::DEBUG, "Current IMU Heading    ", current_telemetry.heading);
+        logger.event(LOG_LEVELS::DEBUG, "Current IMU Altitude   ", current_telemetry.altitude_barometric);
+        logger.event(LOG_LEVELS::DEBUG, "Current IMU Pressure   ", current_telemetry.pressure);
+        logger.event(LOG_LEVELS::DEBUG, "Current IMU Temperature", current_telemetry.temperature);
     }
 }
 

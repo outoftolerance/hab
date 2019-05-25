@@ -10,7 +10,7 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
 
-#define GPS_SERIAL_BAUD 57600
+#define GPS_SERIAL_BAUD 9600
 #define GPS_SERIAL_BUFFER_SIZE 64
 	
 /**

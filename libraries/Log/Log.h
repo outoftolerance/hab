@@ -33,6 +33,20 @@ class Log {
 		*/
 		void event(LOG_LEVELS level, const char message[]);
 
+		/**
+		* @brief      Infomation log level
+		* @param      message  The message to be logged
+		* @param	  data	A number to be logged with the string
+		*/
+		void event(LOG_LEVELS level, const char message[], float data);
+
+		/**
+		* @brief      Infomation log level
+		* @param      message  The message to be logged
+		* @param	  data	A number to be logged with the string
+		*/
+		void event(LOG_LEVELS level, const char message[], int data);
+
 	private:
 		Stream& output_;			/**< Reference to stream used for output */
 		int log_level_; 			/**< Debug mode flag */

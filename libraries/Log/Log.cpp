@@ -44,3 +44,67 @@ void Log::event(LOG_LEVELS level, const char message[])
         output_.println(message);
     }
 }
+
+void Log::event(LOG_LEVELS level, const char message[], float data)
+{
+    if(level >= log_level_)
+    {
+        String preamble;
+
+        switch(level)
+        {
+            case LOG_LEVELS::DEBUG:
+                preamble = "DEBUG   | ";
+                break;
+            case LOG_LEVELS::INFO:
+                preamble = "INFO    | ";
+                break;
+            case LOG_LEVELS::WARNING:
+                preamble = "WARNING | ";
+                break;
+            case LOG_LEVELS::ERROR:
+                preamble = "ERROR   | ";
+                break;
+            case LOG_LEVELS::FATAL:
+                preamble = "FATAL   | ";
+                break;
+        }
+
+        output_.print(preamble);
+        output_.print(message);
+        output_.print(": ");
+        output_.println(data);
+    }
+}
+
+void Log::event(LOG_LEVELS level, const char message[], int data)
+{
+    if(level >= log_level_)
+    {
+        String preamble;
+
+        switch(level)
+        {
+            case LOG_LEVELS::DEBUG:
+                preamble = "DEBUG   | ";
+                break;
+            case LOG_LEVELS::INFO:
+                preamble = "INFO    | ";
+                break;
+            case LOG_LEVELS::WARNING:
+                preamble = "WARNING | ";
+                break;
+            case LOG_LEVELS::ERROR:
+                preamble = "ERROR   | ";
+                break;
+            case LOG_LEVELS::FATAL:
+                preamble = "FATAL   | ";
+                break;
+        }
+
+        output_.print(preamble);
+        output_.print(message);
+        output_.print(": ");
+        output_.println(data);
+    }
+}
