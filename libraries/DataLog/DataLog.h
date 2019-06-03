@@ -1,9 +1,10 @@
 #ifndef DataLog_h
 #define DataLog_h
 
-#include <Arduino.h>
+#include <SPI.h>
+#include <SD.h>
 
-#define MAX_FILENAME_LENGTH 32
+#define MAX_FILENAME_LENGTH 8
 #define MAX_HEADER_LENGTH 128
 
 /**
@@ -18,12 +19,12 @@ class DataLog {
 		* @param	  header[]		The header that should be printed at the top of the file
 		* @param	  chip_select 	The chip select pin for the SD card
 		*/
-		DataLog(const char filename[], const char header[], int chip_select);
+		DataLog(int chip_select);
 
 		/*
 		 * @brief	  Initializes the logger by openning the file
 		 */
-		bool init();
+		bool init(const String& filename, const String& header);
 
 		/**
 		 * @brief	  Logs a single line of data into the file.

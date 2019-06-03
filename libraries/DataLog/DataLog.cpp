@@ -1,17 +1,18 @@
 #include "DataLog.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-DataLog::DataLog(const char filename[], const char header[], int chip_select) :
-  filename_(filename),
-  header_(header),
+DataLog::DataLog(int chip_select) :
   chip_select_(chip_select)
 {
 
 }
 
 /*------------------------------Public Methods------------------------------*/
-bool DataLog::init()
+bool DataLog::init(const String& filename, const String& header)
 {
+	filename.toCharArray(filename_, MAX_FILENAME_LENGTH);
+	header.toCharArray(header_, MAX_HEADER_LENGTH);
+
 	if (!SD.begin(chip_select_)) {
     	return false;
   	}
@@ -23,7 +24,9 @@ bool DataLog::init()
   		return false;
   	}
 
-  	log_file.println(header_);
+  	log_file_.println(header_);
+
+  	log_file_.close();
 
 	return true;
 }
@@ -47,6 +50,8 @@ bool DataLog::entry(const float data[], int size, bool newline)
 		}
 	}
 
+	log_file_ = SD.open(filename_, FILE_WRITE);
+
 	if(newline)
 	{
 		log_file_.println(data_string);
@@ -55,6 +60,8 @@ bool DataLog::entry(const float data[], int size, bool newline)
 	{
 		log_file_.print(data_string);
 	}
+
+	log_file_.close();
 }
 
 bool DataLog::entry(const int data[], int size, bool newline)
@@ -76,6 +83,8 @@ bool DataLog::entry(const int data[], int size, bool newline)
 		}
 	}
 
+	log_file_ = SD.open(filename_, FILE_WRITE);
+
 	if(newline)
 	{
 		log_file_.println(data_string);
@@ -84,4 +93,6 @@ bool DataLog::entry(const int data[], int size, bool newline)
 	{
 		log_file_.print(data_string);
 	}
+
+	log_file_.close();
 }

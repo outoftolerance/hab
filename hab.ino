@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include "wiring_private.h" // For ATSAMD M0 pinPeripheral() function
 
-#include <SPI.h>
-#include <SD.h>
 #include <Timer.h>
 #include <Telemetry.h>
 #include <Log.h>
@@ -85,7 +83,7 @@ void sendAck(MESSAGE_TYPES type);
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
 Log logger(logging_output_stream, LOG_LEVELS::DEBUG);                       /**< Log object */
-DataLog telemetry_logger("telemetry.csv","latitude,longitude,altitude,altitude_barometric,roll,pitch,heading,course,temperature,pressure", SD_CHIP_SELECT);
+DataLog telemetry_logger(SD_CHIP_SELECT);
 Telemetry telemetry(gps_input_stream);                                      /**< Telemetry object */
 
 MissionState mission_state;         /**< Mission state state machine object */
@@ -144,9 +142,12 @@ void setup() {
         while(1);
     }
 
+    String telemetry_log_name = "tlm.csv";
+    String telemetry_log_header = "latitude,longitude,altitude,altitude_barometric,roll,pitch,heading,course,temperature,pressure";
+
     //Start telemetry data logger
     logger.event(LOG_LEVELS::INFO, "Initialising Telemetry data logger...");
-    if(!telemetry_logger.init())
+    if(!telemetry_logger.init(telemetry_log_name, telemetry_log_header))
     {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Telemetry data logger!");
         while(1);
@@ -206,7 +207,7 @@ void loop() {
         if(timer_telemetry_log.check())
         {
             logger.event(LOG_LEVELS::DEBUG, "Logging telemetry to storage.");
-            //Telemetry log function
+            logTelemetry(current_telemetry);
 
             timer_telemetry_log.reset();
         }
@@ -395,7 +396,19 @@ void sendAck(MESSAGE_TYPES type)
 
 void logTelemetry(TelemetryStruct& telemetry)
 {
-    float temp_telemetry_array[10];
+    int telemetry_size = 10;
+    float temp_telemetry_array[telemetry_size];
 
-    telemetry_logger.entry(temp_telemetry_array, 10, true);
+    temp_telemetry_array[0] = telemetry.latitude;
+    temp_telemetry_array[1] = telemetry.longitude;
+    temp_telemetry_array[2] = telemetry.altitude;
+    temp_telemetry_array[3] = telemetry.altitude_barometric;
+    temp_telemetry_array[4] = telemetry.roll;
+    temp_telemetry_array[5] = telemetry.pitch;
+    temp_telemetry_array[6] = telemetry.heading;
+    temp_telemetry_array[7] = telemetry.course;
+    temp_telemetry_array[8] = telemetry.temperature;
+    temp_telemetry_array[9] = telemetry.pressure;
+
+    telemetry_logger.entry(temp_telemetry_array, telemetry_size, true);
 }
