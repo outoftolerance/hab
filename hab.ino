@@ -143,7 +143,7 @@ void setup() {
     }
 
     String telemetry_log_name = "tlm.csv";
-    String telemetry_log_header = "latitude,longitude,altitude,altitude_barometric,roll,pitch,heading,course,temperature,pressure";
+    String telemetry_log_header = "lat,lon,alt,alt_baro,roll,pitch,heading,course,temp,pres";
 
     //Start telemetry data logger
     logger.event(LOG_LEVELS::INFO, "Initialising Telemetry data logger...");
