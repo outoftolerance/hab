@@ -8,6 +8,7 @@
 #include <SimpleHDLC.h>
 #include <MissionState.h>
 #include <HardwareConfiguration.h>
+#include <RTClib.h>
 
 /*
  * Creating some new Serial ports using M0 SERCOM for peripherals
@@ -83,8 +84,10 @@ void sendAck(MESSAGE_TYPES type);
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
 Log logger(logging_output_stream, LOG_LEVELS::DEBUG);                       /**< Log object */
-DataLog telemetry_logger(SD_CHIP_SELECT);
-Telemetry telemetry(gps_input_stream);                                      /**< Telemetry object */
+DataLog telemetry_logger(SD_CHIP_SELECT);                                   /**< Data logging object for telemetry */
+Telemetry telemetry(gps_input_stream, GPS_FIX_STATUS);                      /**< Telemetry object */
+RTC_DS3231 rtc;                                                             /**< Real Time Clock object */
+bool update_rtc_from_gps = false;                                           /**< If RTC lost power we need to update from GPS */
 
 MissionState mission_state;         /**< Mission state state machine object */
 Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
@@ -105,11 +108,32 @@ void setup() {
     pinMode(ARM_SWITCH, INPUT);
     pinMode(SILENCE_SWITCH, INPUT);
     pinMode(LED_EXTERNAL, OUTPUT);
+    pinMode(GPS_FIX_STATUS, INPUT);
     pinMode(BUZZER_EXTERNAL, OUTPUT);
     
     //Start debug serial port
     logger.init();
     logger.event(LOG_LEVELS::INFO, "HAB systems starting...");
+
+    //Start RTC
+    logger.event(LOG_LEVELS::INFO, "Starting Real Time Clock...");
+    if (! rtc.begin())
+    {
+        logger.event(LOG_LEVELS::FATAL, "Failed to initialise Real Time Clock!");
+        while(1);
+    }
+
+    //Set RTC if power was lost
+    logger.event(LOG_LEVELS::INFO, "Checking real time clock status...");
+    if (rtc.lostPower())
+    {
+        logger.event(LOG_LEVELS::WARNING, "RTC lost power, setting new date and time!");
+
+        //Sets to when the sketch was compiled
+        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+        update_rtc_from_gps = true;
+    }
 
     //Start radio modem Serial port
     logger.event(LOG_LEVELS::INFO, "Starting radio modem...");
@@ -192,6 +216,15 @@ void loop() {
                 logger.event(LOG_LEVELS::DEBUG, "Telemetry updated completed.");
                 timer_telemetry_check.reset();
             }
+        }
+
+        //Set RTC if needed and gps fix is true
+        if (update_rtc_from_gps && telemetry.getGpsFixStatus()) 
+        {
+            logger.event(LOG_LEVELS::INFO, "Setting RTC from GPS timestamp.");
+
+            // This line sets the RTC with an explicit date & time from unix epoch
+            rtc.adjust(DateTime(telemetry.getGpsDateTime()));
         }
 
         //Telemetry Report

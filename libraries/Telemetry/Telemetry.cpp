@@ -1,10 +1,12 @@
 #include "Telemetry.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-Telemetry::Telemetry(Stream& gps_serial) :
-	gps_serial_(gps_serial)
+Telemetry::Telemetry(Stream& gps_serial, int gps_fix_pin) :
+	gps_serial_(gps_serial),
+	gps_fix_pin_(gps_fix_pin)
 {
 	gps_serial_buffer_ = new Buffer(GPS_SERIAL_BUFFER_SIZE);
+	gps_fix_status_ = false;
 }
 
 /*------------------------------Private Methods------------------------------*/
@@ -53,6 +55,8 @@ void Telemetry::updateGps_()
 		gps_.encode(c);
 		gps_serial_buffer_->push(c);
 	}
+
+	gps_fix_status_ = digitalRead(gps_fix_pin_);
 }
 
 void Telemetry::updateAccelerometer_()
@@ -160,4 +164,19 @@ int Telemetry::getGpsString(char string[])
 	}
 
 	return i;
+}
+
+bool Telemetry::getGpsFixStatus()
+{
+	return gps_fix_status_;
+}
+
+float Telemetry::getGpsHdop()
+{
+	return (float)gps_.hdop.hdop();
+}
+
+long Telemetry::getGpsDateTime()
+{
+	return 0;
 }
