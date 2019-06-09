@@ -433,7 +433,12 @@ void RTC_PCF8523::writeSqwPinMode(Pcf8523SqwPinMode mode) {
 
 boolean RTC_DS3231::begin(void) {
   Wire.begin();
+  is_initialized_ = true;
   return true;
+}
+
+boolean RTC_DS3231::isrunning(void) {
+  return is_initialized_;
 }
 
 bool RTC_DS3231::lostPower(void) {

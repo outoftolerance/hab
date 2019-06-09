@@ -117,7 +117,7 @@ void setup() {
 
     //Start RTC
     logger.event(LOG_LEVELS::INFO, "Starting Real Time Clock...");
-    if (! rtc.begin())
+    if (!rtc.begin())
     {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Real Time Clock!");
         while(1);
@@ -196,7 +196,7 @@ void loop() {
 
     while(1)
     {
-        //Get launch and silsnce switch states
+        //Get launch and silence switch states
         logger.event(LOG_LEVELS::DEBUG, "Getting updated status of switches.");
         launch_switch_state = digitalRead(ARM_SWITCH);
         silence_switch_state = digitalRead(SILENCE_SWITCH);
@@ -225,6 +225,8 @@ void loop() {
 
             // This line sets the RTC with an explicit date & time from unix epoch
             rtc.adjust(DateTime(telemetry.getGpsDateTime()));
+
+            logger.event(LOG_LEVELS::INFO, "RTC was adjusted from GPS timestamp.");
         }
 
         //Telemetry Report

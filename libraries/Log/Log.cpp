@@ -1,8 +1,9 @@
 #include "Log.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-Log::Log(Stream& port, LOG_LEVELS log_level) :
+Log::Log(Stream& port, RTC_DS3231& rtc, LOG_LEVELS log_level) :
   output_(port),
+  clock_(rtc),
   log_level_(log_level)
 {
 
@@ -21,22 +22,35 @@ void Log::event(LOG_LEVELS level, const char message[])
     {
         String preamble;
 
+        if(clock_.isrunning())
+        {
+            DateTime now = clock_.now();
+            preamble = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + " " + now.minute() + " " + now.second();
+            preamble += " | "
+            preamble += now.now();
+            preamble += " | ";
+        }
+        else
+        {
+            preamble = "0000/00/00 00:00:00 | 0 | ";
+        }
+
         switch(level)
         {
             case LOG_LEVELS::DEBUG:
-                preamble = "DEBUG   | ";
+                preamble += "DEBUG   | ";
                 break;
             case LOG_LEVELS::INFO:
-                preamble = "INFO    | ";
+                preamble += "INFO    | ";
                 break;
             case LOG_LEVELS::WARNING:
-                preamble = "WARNING | ";
+                preamble += "WARNING | ";
                 break;
             case LOG_LEVELS::ERROR:
-                preamble = "ERROR   | ";
+                preamble += "ERROR   | ";
                 break;
             case LOG_LEVELS::FATAL:
-                preamble = "FATAL   | ";
+                preamble += "FATAL   | ";
                 break;
         }
 
@@ -50,6 +64,19 @@ void Log::event(LOG_LEVELS level, const char message[], float data)
     if(level >= log_level_)
     {
         String preamble;
+
+        if(clock_.isrunning())
+        {
+            DateTime now = clock_.now();
+            preamble = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + " " + now.minute() + " " + now.second();
+            preamble += " | "
+            preamble += now.now();
+            preamble += " | ";
+        }
+        else
+        {
+            preamble = "0000/00/00 00:00:00 | 0 | ";
+        }
 
         switch(level)
         {
@@ -82,6 +109,19 @@ void Log::event(LOG_LEVELS level, const char message[], int data)
     if(level >= log_level_)
     {
         String preamble;
+
+        if(clock_.isrunning())
+        {
+            DateTime now = clock_.now();
+            preamble = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + " " + now.minute() + " " + now.second();
+            preamble += " | "
+            preamble += now.now();
+            preamble += " | ";
+        }
+        else
+        {
+            preamble = "0000/00/00 00:00:00 | 0 | ";
+        }
 
         switch(level)
         {
