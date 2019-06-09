@@ -25,9 +25,9 @@ void Log::event(LOG_LEVELS level, const char message[])
         if(clock_.isrunning())
         {
             DateTime now = clock_.now();
-            preamble = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + " " + now.minute() + " " + now.second();
-            preamble += " | "
-            preamble += now.now();
+            preamble = String(now.year()) + "/" + String(now.month()) + "/" + String(now.day()) + " " + String(now.hour()) + " " + String(now.minute()) + " " + String(now.second());
+            preamble += " | ";
+            preamble += now.unixtime();
             preamble += " | ";
         }
         else
@@ -68,9 +68,9 @@ void Log::event(LOG_LEVELS level, const char message[], float data)
         if(clock_.isrunning())
         {
             DateTime now = clock_.now();
-            preamble = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + " " + now.minute() + " " + now.second();
-            preamble += " | "
-            preamble += now.now();
+            preamble = String(now.year()) + "/" + String(now.month()) + "/" + String(now.day()) + " " + String(now.hour()) + " " + String(now.minute()) + " " + String(now.second());
+            preamble += " | ";
+            preamble += now.unixtime();
             preamble += " | ";
         }
         else
@@ -113,9 +113,9 @@ void Log::event(LOG_LEVELS level, const char message[], int data)
         if(clock_.isrunning())
         {
             DateTime now = clock_.now();
-            preamble = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + " " + now.minute() + " " + now.second();
-            preamble += " | "
-            preamble += now.now();
+            preamble = String(now.year()) + "/" + String(now.month()) + "/" + String(now.day()) + " " + String(now.hour()) + " " + String(now.minute()) + " " + String(now.second());
+            preamble += " | ";
+            preamble += now.unixtime();
             preamble += " | ";
         }
         else
