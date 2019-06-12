@@ -1,12 +1,19 @@
 #include "Log.h"
 
 /*------------------------------Constructor Methods------------------------------*/
-Log::Log(Stream& port, RTC_DS3231& rtc, LOG_LEVELS log_level) :
+Log::Log(Stream& port, LOG_LEVELS log_level) :
+  output_(port),
+  log_level_(log_level)
+{
+    use_rtc_ = false;
+}
+
+Log::Log(Stream& port, RTC_DS3231* rtc, LOG_LEVELS log_level) :
   output_(port),
   clock_(rtc),
   log_level_(log_level)
 {
-
+    use_rtc_ = true;
 }
 
 /*------------------------------Public Methods------------------------------*/
@@ -22,9 +29,9 @@ void Log::event(LOG_LEVELS level, const char message[])
     {
         String preamble;
 
-        if(clock_.isrunning())
+        if(clock_->isrunning() && use_rtc_)
         {
-            DateTime now = clock_.now();
+            DateTime now = clock_->now();
             preamble = String(now.year()) + "/" + String(now.month()) + "/" + String(now.day()) + " " + String(now.hour()) + " " + String(now.minute()) + " " + String(now.second());
             preamble += " | ";
             preamble += now.unixtime();
@@ -32,7 +39,8 @@ void Log::event(LOG_LEVELS level, const char message[])
         }
         else
         {
-            preamble = "0000/00/00 00:00:00 | 0 | ";
+            long now = millis();
+            preamble = "0000/00/00 " + String(numberOfHours(now / 1000l)) + ":" + String(numberOfMinutes(now / 1000l)) + ":" + String(numberOfSeconds(now / 1000l)) + " | 0 | ";
         }
 
         switch(level)
@@ -65,9 +73,9 @@ void Log::event(LOG_LEVELS level, const char message[], float data)
     {
         String preamble;
 
-        if(clock_.isrunning())
+        if(clock_->isrunning() && use_rtc_)
         {
-            DateTime now = clock_.now();
+            DateTime now = clock_->now();
             preamble = String(now.year()) + "/" + String(now.month()) + "/" + String(now.day()) + " " + String(now.hour()) + " " + String(now.minute()) + " " + String(now.second());
             preamble += " | ";
             preamble += now.unixtime();
@@ -75,7 +83,8 @@ void Log::event(LOG_LEVELS level, const char message[], float data)
         }
         else
         {
-            preamble = "0000/00/00 00:00:00 | 0 | ";
+            long now = millis();
+            preamble = "0000/00/00 " + String(numberOfHours(now / 1000l)) + ":" + String(numberOfMinutes(now / 1000l)) + ":" + String(numberOfSeconds(now / 1000l)) + " | 0 | ";
         }
 
         switch(level)
@@ -110,9 +119,9 @@ void Log::event(LOG_LEVELS level, const char message[], int data)
     {
         String preamble;
 
-        if(clock_.isrunning())
+        if(clock_->isrunning() && use_rtc_)
         {
-            DateTime now = clock_.now();
+            DateTime now = clock_->now();
             preamble = String(now.year()) + "/" + String(now.month()) + "/" + String(now.day()) + " " + String(now.hour()) + " " + String(now.minute()) + " " + String(now.second());
             preamble += " | ";
             preamble += now.unixtime();
@@ -120,7 +129,8 @@ void Log::event(LOG_LEVELS level, const char message[], int data)
         }
         else
         {
-            preamble = "0000/00/00 00:00:00 | 0 | ";
+            long now = millis();
+            preamble = "0000/00/00 " + String(numberOfHours(now / 1000l)) + ":" + String(numberOfMinutes(now / 1000l)) + ":" + String(numberOfSeconds(now / 1000l)) + " | 0 | ";
         }
 
         switch(level)
