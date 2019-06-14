@@ -6,6 +6,7 @@
 #include <Log.h>
 #include <DataLog.h>
 #include <SimpleHDLC.h>
+#include <SimpleMessageProtocol.h>
 #include <MissionState.h>
 #include <HardwareConfiguration.h>
 #include <RTClib.h>
@@ -45,17 +46,6 @@ Stream& logging_output_stream = Serial;             /**< Logging output stream, 
 Stream& gps_input_stream = Serial1;                 /**< GPS device input stream, this is of type HardwareSerial */
 Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream, this is of type HardwareSerial */
 Stream& cellular_input_output_stream = Serial3;     /**< Cellular input output stream, this is of type HardwareSerial */
-
-enum MESSAGE_TYPES {
-    MESSAGE_TYPE_REPORT_TELEMETRY,
-    MESSAGE_TYPE_REPORT_POSITION,
-
-    MESSAGE_TYPE_COMMAND_ARM,
-    MESSAGE_TYPE_COMMAND_DISARM,
-    MESSAGE_TYPE_COMMAND_SET_STATE,
-
-    MESSAGE_TYPE_PROTO_ACK
-};
 
 /**
  * @brief      Sets timers based on mission state
