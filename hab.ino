@@ -189,6 +189,10 @@ void loop() {
 
     while(1)
     {
+        //Get messages from command interfaces
+        radio.receive();
+        cellular.receive();
+
         //Get launch and silence switch states
         logger.event(LOG_LEVELS::DEBUG, "Getting updated status of switches.");
         launch_switch_state = digitalRead(ARM_SWITCH);
