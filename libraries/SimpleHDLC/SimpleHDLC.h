@@ -38,7 +38,7 @@ class SimpleHDLC
         SimpleHDLC(Stream& input_stream, message_callback_type);
 
         /**
-         * @brief      Processes tyhe data stream to find messages.
+         * @brief      Processes the data stream to find messages.
          */
         void receive();
 

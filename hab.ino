@@ -81,9 +81,10 @@ bool update_rtc_from_gps = false;                                           /**<
 
 MissionState mission_state;         /**< Mission state state machine object */
 Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
-Timer timer_telemetry_report;       /**< timer sets interval between reporting telemetry */
+Timer timer_telemetry_report;       /**< Timer sets interval between reporting telemetry */
 Timer timer_position_report;        /**< Timer sets interval between reporting position */
-Timer timer_telemetry_log;          /**< timer sets interval between logging telemetry */
+Timer timer_telemetry_log;          /**< Timer sets interval between logging telemetry */
+Timer timer_execution_led;            /**< Timer sets intercal between run led blinks */
 
 /**
  * @brief System setup function
@@ -177,6 +178,7 @@ void loop() {
     bool silence_switch_state = false;                      /**< Current silsnce switch state */
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
     TelemetryStruct current_telemetry;                      /**< Current telemetry */
+    timer_execution_led.setInterval(500);                   /**< Sets execution blinky LED interval to 500ms */
 
     //Start system timers
     timer_telemetry_check.start();
@@ -266,6 +268,19 @@ void loop() {
             digitalWrite(LED_EXTERNAL, false);
         }
 
+        //Execution LED indicator blinkies
+        if(timer_execution_led.check())
+        {
+            if(digitalRead(LED_BUILTIN) == HIGH)
+            {
+                digitalWrite(LED_BUILTIN, LOW);
+            }
+            else
+            {
+                digitalWrite(LED_BUILTIN, HIGH);
+            }
+        }
+
         //Update mission state
         logger.event(LOG_LEVELS::DEBUG, "Updating Mission State subsystem.");
         if(!mission_state.update(&current_telemetry, launch_switch_state, silence_switch_state))
@@ -281,11 +296,6 @@ void loop() {
         //Update program timers based on state
         logger.event(LOG_LEVELS::DEBUG, "Setting system timers based on mission state.");
         setTimers(current_mission_state_function);
-
-        digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-        delay(1000);                       // wait for a second
-        digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-        delay(1000);
 
         //Print a bunch of debug information
         logger.event(LOG_LEVELS::DEBUG, "Current GPS Latitude   ", current_telemetry.latitude);
