@@ -185,6 +185,7 @@ void loop() {
     timer_telemetry_report.start();
     timer_telemetry_log.start();
     timer_position_report.start();
+    timer_execution_led.start();
 
     while(1)
     {
