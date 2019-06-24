@@ -76,7 +76,7 @@ SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**<
 RTC_DS3231 rtc;                                                             /**< Real Time Clock object */
 Log logger(logging_output_stream, &rtc, LOG_LEVELS::DEBUG);                 /**< Log object */
 DataLog telemetry_logger(SD_CHIP_SELECT);                                   /**< Data logging object for telemetry */
-Telemetry telemetry(gps_input_stream, GPS_FIX_STATUS);                      /**< Telemetry object */
+Telemetry telemetry(&gps_input_stream, GPS_FIX_STATUS);                      /**< Telemetry object */
 bool update_rtc_from_gps = false;                                           /**< If RTC lost power we need to update from GPS */
 
 MissionState mission_state;         /**< Mission state state machine object */
