@@ -71,20 +71,20 @@ void logTelemetry(TelemetryStruct& telemetry);
 void sendPositionReport(TelemetryStruct& telemetry);
 void sendAck(MESSAGE_TYPES type);
 
-SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);        /**< HDLC messaging object, linked to message callback */
-SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);  /**< HDLC messaging object, linked to message callback */
-RTC_DS3231 rtc;                                                             /**< Real Time Clock object */
-Log logger(logging_output_stream, &rtc, LOG_LEVELS::DEBUG);                 /**< Log object */
-DataLog telemetry_logger(SD_CHIP_SELECT);                                   /**< Data logging object for telemetry */
-Telemetry telemetry(&gps_input_stream, GPS_FIX_STATUS);                      /**< Telemetry object */
-bool update_rtc_from_gps = false;                                           /**< If RTC lost power we need to update from GPS */
+SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);                            /**< HDLC messaging object, linked to message callback */
+SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);                      /**< HDLC messaging object, linked to message callback */
+RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
+Log logger(logging_output_stream, &rtc, LOG_LEVELS::DEBUG);                                     /**< Log object */
+DataLog telemetry_logger(SD_CHIP_SELECT);                                                       /**< Data logging object for telemetry */
+Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream, GPS_FIX_STATUS);     /**< Telemetry object */
+bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
 
 MissionState mission_state;         /**< Mission state state machine object */
 Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
 Timer timer_telemetry_report;       /**< Timer sets interval between reporting telemetry */
 Timer timer_position_report;        /**< Timer sets interval between reporting position */
 Timer timer_telemetry_log;          /**< Timer sets interval between logging telemetry */
-Timer timer_execution_led;            /**< Timer sets intercal between run led blinks */
+Timer timer_execution_led;          /**< Timer sets intercal between run led blinks */
 
 /**
  * @brief System setup function
