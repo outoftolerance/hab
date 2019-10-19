@@ -71,10 +71,12 @@ void logTelemetry(TelemetryStruct& telemetry);
 void sendPositionReport(TelemetryStruct& telemetry);
 void sendAck(MESSAGE_TYPES type);
 
+void stop();
+
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);                            /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);                      /**< HDLC messaging object, linked to message callback */
 RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
-Log logger(logging_output_stream, &rtc, LOG_LEVELS::DEBUG);                                     /**< Log object */
+Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                                     /**< Log object */
 DataLog telemetry_logger(SD_CHIP_SELECT);                                                       /**< Data logging object for telemetry */
 Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream, GPS_FIX_STATUS);     /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
@@ -86,13 +88,16 @@ Timer timer_position_report;        /**< Timer sets interval between reporting p
 Timer timer_telemetry_log;          /**< Timer sets interval between logging telemetry */
 Timer timer_execution_led;          /**< Timer sets intercal between run led blinks */
 
+const String telemetry_log_name = "tlm.csv";
+const String telemetry_log_header = "lat,lon,alt,alt_baro,roll,pitch,heading,course,temp,pres";
+
 /**
  * @brief System setup function
  * @details Initialises all system componenets at start-up
  */
 void setup() {
-    //Sleep 5s so that debug can connect
-    delay(5000);
+    //Sleep until debug can connect
+    while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
@@ -106,13 +111,15 @@ void setup() {
     logger.init();
     logger.event(LOG_LEVELS::INFO, "HAB systems starting...");
 
+    /*
     //Start RTC
     logger.event(LOG_LEVELS::INFO, "Starting Real Time Clock...");
     if (!rtc.begin())
     {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Real Time Clock!");
-        while(1);
+        stop();
     }
+    logger.event(LOG_LEVELS::INFO, "Done!");
 
     //Set RTC if power was lost
     logger.event(LOG_LEVELS::INFO, "Checking real time clock status...");
@@ -125,48 +132,53 @@ void setup() {
 
         update_rtc_from_gps = true;
     }
+    logger.event(LOG_LEVELS::INFO, "Done!");
+    */
 
     //Start radio modem Serial port
-    logger.event(LOG_LEVELS::INFO, "Starting radio modem...");
+    logger.event(LOG_LEVELS::INFO, "Starting radio modem serial port...");
     static_cast<HardwareSerial&>(radio_input_output_stream).begin(57600);
     pinPeripheral(10, PIO_SERCOM);
     pinPeripheral(11, PIO_SERCOM);
+    logger.event(LOG_LEVELS::INFO, "Done!");
 
     //Start cellular modem Serial port
     logger.event(LOG_LEVELS::INFO, "Starting cellular modem serial port...");
     static_cast<HardwareSerial&>(cellular_input_output_stream).begin(57600);
     pinPeripheral(3, PIO_SERCOM_ALT);
     pinPeripheral(4, PIO_SERCOM_ALT);
+    logger.event(LOG_LEVELS::INFO, "Done!");
 
     //Initialise state machine
     logger.event(LOG_LEVELS::INFO, "Initialising Mission State subsystem...");
     if(!mission_state.set(MISSION_STATES::STAGING))
     {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Mission State subsystem!");
-        while(1);
+        stop();
     }
-
-    //Set initial program timers
-    setTimers(mission_state.getFunction());
+    logger.event(LOG_LEVELS::INFO, "Done!");
 
     //Initialise the telemetry system
     logger.event(LOG_LEVELS::INFO, "Initialising Telemetry subsystem...");
     if(!telemetry.init())
     {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Telemetry subsystem!");
-        while(1);
+        stop();
     }
+    logger.event(LOG_LEVELS::INFO, "Done!");
 
-    String telemetry_log_name = "tlm.csv";
-    String telemetry_log_header = "lat,lon,alt,alt_baro,roll,pitch,heading,course,temp,pres";
-
+    /*
     //Start telemetry data logger
     logger.event(LOG_LEVELS::INFO, "Initialising Telemetry data logger...");
     if(!telemetry_logger.init(telemetry_log_name, telemetry_log_header))
     {
         logger.event(LOG_LEVELS::FATAL, "Failed to initialise Telemetry data logger!");
-        while(1);
+        stop();
     }
+    logger.event(LOG_LEVELS::INFO, "Done!");
+    */
+
+    logger.event(LOG_LEVELS::INFO, "Finished initialisation, starting program!");
 }
 
 /**
@@ -178,7 +190,11 @@ void loop() {
     bool silence_switch_state = false;                      /**< Current silsnce switch state */
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
     TelemetryStruct current_telemetry;                      /**< Current telemetry */
-    timer_execution_led.setInterval(500);                   /**< Sets execution blinky LED interval to 500ms */
+    timer_execution_led.setInterval(1000);                  /**< Sets execution blinky LED interval */
+
+    //Set initial program timers
+    mission_state.getFunction(current_mission_state_function);
+    setTimers(current_mission_state_function);
 
     //Start system timers
     timer_telemetry_check.start();
@@ -210,7 +226,7 @@ void loop() {
             }
             else
             {
-                logger.event(LOG_LEVELS::DEBUG, "Telemetry updated completed.");
+                logger.event(LOG_LEVELS::DEBUG, "Telemetry update completed.");
                 timer_telemetry_check.reset();
             }
         }
@@ -284,35 +300,39 @@ void loop() {
             {
                 digitalWrite(LED_BUILTIN, HIGH);
             }
+
+            //Print a bunch of debug information
+            logger.event(LOG_LEVELS::INFO, "Current GPS Latitude   ", current_telemetry.latitude);
+            logger.event(LOG_LEVELS::INFO, "Current GPS Longitude  ", current_telemetry.longitude);
+            logger.event(LOG_LEVELS::INFO, "Current GPS Altitude   ", current_telemetry.altitude);
+            logger.event(LOG_LEVELS::INFO, "Current GPS Course     ", current_telemetry.course);
+            logger.event(LOG_LEVELS::INFO, "Current GPS Velocity V ", current_telemetry.velocity_vertical);
+            logger.event(LOG_LEVELS::INFO, "Current GPS Velocity H ", current_telemetry.velocity_horizontal);
+            logger.event(LOG_LEVELS::INFO, "Current IMU Roll       ", current_telemetry.roll);
+            logger.event(LOG_LEVELS::INFO, "Current IMU Pitch      ", current_telemetry.pitch);
+            logger.event(LOG_LEVELS::INFO, "Current IMU Heading    ", current_telemetry.heading);
+            logger.event(LOG_LEVELS::INFO, "Current IMU Altitude   ", current_telemetry.altitude_barometric);
+            logger.event(LOG_LEVELS::INFO, "Current IMU Pressure   ", current_telemetry.pressure);
+            logger.event(LOG_LEVELS::INFO, "Current IMU Temperature", current_telemetry.temperature);
+
+            timer_execution_led.reset();
         }
 
         //Update mission state
         logger.event(LOG_LEVELS::DEBUG, "Updating Mission State subsystem.");
-        if(!mission_state.update(&current_telemetry, launch_switch_state, silence_switch_state))
+        if(!mission_state.update(current_telemetry, launch_switch_state, silence_switch_state))
         {
             logger.event(LOG_LEVELS::ERROR, "Failed to update Mission State subsystem!");
         }
         else
         {
-            current_mission_state_function = mission_state.getFunction();
+            mission_state.getFunction(current_mission_state_function);
             logger.event(LOG_LEVELS::DEBUG, "Mission State subsystem update completed.");
         }
 
         //Update program timers based on state
         logger.event(LOG_LEVELS::DEBUG, "Setting system timers based on mission state.");
         setTimers(current_mission_state_function);
-
-        //Print a bunch of debug information
-        logger.event(LOG_LEVELS::DEBUG, "Current GPS Latitude   ", current_telemetry.latitude);
-        logger.event(LOG_LEVELS::DEBUG, "Current GPS Longitude  ", current_telemetry.longitude);
-        logger.event(LOG_LEVELS::DEBUG, "Current GPS Altitude   ", current_telemetry.altitude);
-        logger.event(LOG_LEVELS::DEBUG, "Current GPS Course     ", current_telemetry.course);
-        logger.event(LOG_LEVELS::DEBUG, "Current IMU Roll       ", current_telemetry.roll);
-        logger.event(LOG_LEVELS::DEBUG, "Current IMU Pitch      ", current_telemetry.pitch);
-        logger.event(LOG_LEVELS::DEBUG, "Current IMU Heading    ", current_telemetry.heading);
-        logger.event(LOG_LEVELS::DEBUG, "Current IMU Altitude   ", current_telemetry.altitude_barometric);
-        logger.event(LOG_LEVELS::DEBUG, "Current IMU Pressure   ", current_telemetry.pressure);
-        logger.event(LOG_LEVELS::DEBUG, "Current IMU Temperature", current_telemetry.temperature);
     }
 }
 
@@ -451,4 +471,15 @@ void logTelemetry(TelemetryStruct& telemetry)
     temp_telemetry_array[9] = telemetry.pressure;
 
     telemetry_logger.entry(temp_telemetry_array, telemetry_size, true);
+}
+
+void stop()
+{
+    while(1)
+    {
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(50);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(50); 
+    }
 }
