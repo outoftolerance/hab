@@ -111,7 +111,6 @@ void setup() {
     logger.init();
     logger.event(LOG_LEVELS::INFO, "HAB systems starting...");
 
-    /*
     //Start RTC
     logger.event(LOG_LEVELS::INFO, "Starting Real Time Clock...");
     if (!rtc.begin())
@@ -133,7 +132,6 @@ void setup() {
         update_rtc_from_gps = true;
     }
     logger.event(LOG_LEVELS::INFO, "Done!");
-    */
 
     //Start radio modem Serial port
     logger.event(LOG_LEVELS::INFO, "Starting radio modem serial port...");
@@ -167,7 +165,6 @@ void setup() {
     }
     logger.event(LOG_LEVELS::INFO, "Done!");
 
-    /*
     //Start telemetry data logger
     logger.event(LOG_LEVELS::INFO, "Initialising Telemetry data logger...");
     if(!telemetry_logger.init(telemetry_log_name, telemetry_log_header))
@@ -176,7 +173,6 @@ void setup() {
         stop();
     }
     logger.event(LOG_LEVELS::INFO, "Done!");
-    */
 
     logger.event(LOG_LEVELS::INFO, "Finished initialisation, starting program!");
 }
