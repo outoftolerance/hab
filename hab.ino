@@ -76,8 +76,8 @@ void stop();
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);                            /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);                      /**< HDLC messaging object, linked to message callback */
 RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
-Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                                     /**< Log object */
-DataLog telemetry_logger(SD_CHIP_SELECT);                                                       /**< Data logging object for telemetry */
+Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                                      /**< Log object */
+DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
 Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream, GPS_FIX_STATUS);     /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
 
@@ -89,7 +89,7 @@ Timer timer_telemetry_log;          /**< Timer sets interval between logging tel
 Timer timer_execution_led;          /**< Timer sets intercal between run led blinks */
 
 const String telemetry_log_name = "tlm.csv";
-const String telemetry_log_header = "lat,lon,alt,alt_baro,roll,pitch,heading,course,temp,pres";
+const String telemetry_log_header = "ts,lat,lon,alt,alt_baro,roll,pitch,heading,course,temp,pres";
 
 /**
  * @brief System setup function
