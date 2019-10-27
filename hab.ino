@@ -441,7 +441,7 @@ void sendHeartbeat(MISSION_STATES mission_state)
 {
     hdlcMessage message;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_HEARTBEAT;
-    message.length = 4;
+    message.length = 2;
     message.payload[0] = node_id;
     message.payload[1] = mission_state;
 
@@ -453,42 +453,42 @@ void sendAttitudeReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ATTITUDE;
-    message.length = 5 * sizeof(float) + 2;
+    message.length = 5 * sizeof(float);
 
-    int values = 0;
+    int data_position = 0;
     int bytes = 0;
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.roll.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.roll.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.pitch.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.pitch.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.heading.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.heading.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.temperature.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.temperature.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.pressure.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.pressure.bytes[bytes];
     }
 
     radio.send(message);
@@ -499,49 +499,49 @@ void sendPositionReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION;
-    message.length = 6 * sizeof(float) + 2;
+    message.length = 6 * sizeof(float);
 
-    int values = 0;
+    int data_position = 0;
     int bytes = 0;
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.latitude.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.latitude.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.longitude.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.longitude.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.altitude.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.altitude.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.altitude_relative.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.altitude_relative.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.altitude_barometric.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.altitude_barometric.bytes[bytes];
     }
 
-    values++;
+    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[values + bytes] = telemetry.course.bytes[bytes];
+        message.payload[data_position + bytes] = telemetry.course.bytes[bytes];
     }
 
     radio.send(message);
