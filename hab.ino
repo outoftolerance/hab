@@ -441,7 +441,7 @@ void sendHeartbeat(MISSION_STATES mission_state)
 {
     hdlcMessage message;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_HEARTBEAT;
-    message.length = 3;
+    message.length = 4;
     message.payload[0] = node_id;
     message.payload[1] = mission_state;
 
