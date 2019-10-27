@@ -66,8 +66,9 @@ void handleMessageCommandSetState(hdlcMessage message);
 void handleMessageProtoAck(hdlcMessage message);
 void handleMessageProtoNack(hdlcMessage message);
 
-void sendTelemetryReport(TelemetryStruct& telemetry);
+void sendHeartbeat(MissionState& mission_state);
 void logTelemetry(TelemetryStruct& telemetry);
+void sendAttitudeReport(TelemetryStruct& telemetry);
 void sendPositionReport(TelemetryStruct& telemetry);
 void sendAck(MESSAGE_TYPES type);
 
@@ -80,16 +81,17 @@ Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                      
 DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
 Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream, GPS_FIX_STATUS);     /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
+int node_id = 1;
 
 MissionState mission_state;         /**< Mission state state machine object */
 Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
-Timer timer_telemetry_report;       /**< Timer sets interval between reporting telemetry */
+Timer timer_attitude_report;       /**< Timer sets interval between reporting telemetry */
 Timer timer_position_report;        /**< Timer sets interval between reporting position */
 Timer timer_telemetry_log;          /**< Timer sets interval between logging telemetry */
 Timer timer_execution_led;          /**< Timer sets intercal between run led blinks */
 
 const String telemetry_log_name = "tlm.csv";
-const String telemetry_log_header = "ts,lat,lon,alt,alt_baro,roll,pitch,heading,course,temp,pres";
+const String telemetry_log_header = "ts,lat,lon,alt,alt_rel,alt_baro,roll,pitch,heading,course,temp,pres";
 
 /**
  * @brief System setup function
@@ -182,7 +184,7 @@ void setup() {
  * @details Called after setup() function, loops inifiteley, everything happens here
  */
 void loop() {
-    bool launch_switch_state = false;                       /**< Current launch switch state */
+    bool arm_switch_state = false;                       /**< Current launch switch state */
     bool silence_switch_state = false;                      /**< Current silsnce switch state */
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
     TelemetryStruct current_telemetry;                      /**< Current telemetry */
@@ -194,7 +196,7 @@ void loop() {
 
     //Start system timers
     timer_telemetry_check.start();
-    timer_telemetry_report.start();
+    timer_attitude_report.start();
     timer_telemetry_log.start();
     timer_position_report.start();
     timer_execution_led.start();
@@ -207,8 +209,10 @@ void loop() {
 
         //Get launch and silence switch states
         logger.event(LOG_LEVELS::DEBUG, "Getting updated status of switches.");
-        launch_switch_state = digitalRead(ARM_SWITCH);
-        silence_switch_state = digitalRead(SILENCE_SWITCH);
+        //arm_switch_state = digitalRead(ARM_SWITCH);
+        //silence_switch_state = digitalRead(SILENCE_SWITCH);
+        arm_switch_state = false;
+        silence_switch_state = false;
 
         //Telemetry Update
         if(timer_telemetry_check.check())
@@ -238,15 +242,6 @@ void loop() {
             logger.event(LOG_LEVELS::INFO, "RTC was adjusted from GPS timestamp.");
         }
 
-        //Telemetry Report
-        if(timer_telemetry_report.check())
-        {
-            logger.event(LOG_LEVELS::DEBUG, "Sending telemetry report message.");
-            sendTelemetryReport(current_telemetry);
-
-            timer_telemetry_report.reset();
-        }
-
         //Telemetry Log
         if(timer_telemetry_log.check())
         {
@@ -254,6 +249,15 @@ void loop() {
             logTelemetry(current_telemetry);
 
             timer_telemetry_log.reset();
+        }
+
+        //Attitude Report
+        if(timer_attitude_report.check())
+        {
+            logger.event(LOG_LEVELS::DEBUG, "Sending attitude report message.");
+            sendAttitudeReport(current_telemetry);
+
+            timer_attitude_report.reset();
         }
 
         //Position Report
@@ -297,26 +301,38 @@ void loop() {
                 digitalWrite(LED_BUILTIN, HIGH);
             }
 
+            //Send Heartbeat message
+            sendHeartbeat(mission_state.get());
+
             //Print a bunch of debug information
-            logger.event(LOG_LEVELS::INFO, "Current GPS Latitude   ", current_telemetry.latitude);
-            logger.event(LOG_LEVELS::INFO, "Current GPS Longitude  ", current_telemetry.longitude);
-            logger.event(LOG_LEVELS::INFO, "Current GPS Altitude   ", current_telemetry.altitude);
-            logger.event(LOG_LEVELS::INFO, "Current GPS Course     ", current_telemetry.course);
-            logger.event(LOG_LEVELS::INFO, "Current GPS Velocity V ", current_telemetry.velocity_vertical);
-            logger.event(LOG_LEVELS::INFO, "Current GPS Velocity H ", current_telemetry.velocity_horizontal);
-            logger.event(LOG_LEVELS::INFO, "Current IMU Roll       ", current_telemetry.roll);
-            logger.event(LOG_LEVELS::INFO, "Current IMU Pitch      ", current_telemetry.pitch);
-            logger.event(LOG_LEVELS::INFO, "Current IMU Heading    ", current_telemetry.heading);
-            logger.event(LOG_LEVELS::INFO, "Current IMU Altitude   ", current_telemetry.altitude_barometric);
-            logger.event(LOG_LEVELS::INFO, "Current IMU Pressure   ", current_telemetry.pressure);
-            logger.event(LOG_LEVELS::INFO, "Current IMU Temperature", current_telemetry.temperature);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Latitude   ", current_telemetry.latitude.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Longitude  ", current_telemetry.longitude.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Altitude   ", current_telemetry.altitude.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Course     ", current_telemetry.course.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Velocity V ", current_telemetry.velocity_vertical.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Velocity H ", current_telemetry.velocity_horizontal.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Roll       ", current_telemetry.roll.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Pitch      ", current_telemetry.pitch.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Heading    ", current_telemetry.heading.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Altitude   ", current_telemetry.altitude_barometric.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Pressure   ", current_telemetry.pressure.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Temperature", current_telemetry.temperature.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current Rel Altitude   ", current_telemetry.altitude_relative.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current Arm Sw State    ", arm_switch_state);
+            logger.event(LOG_LEVELS::DEBUG, "Current Silence Sw State", silence_switch_state);
+            logger.event(LOG_LEVELS::DEBUG, "Current Mission State", mission_state.get());
+            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Started", timer_attitude_report.isStarted());
+            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Set", timer_attitude_report.isSet());
+            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Interval", (int)(timer_attitude_report.getInterval()));
+            logger.event(LOG_LEVELS::DEBUG, "Telemetry Log Timer Interval", (int)(timer_telemetry_log.getInterval()));
+            logger.event(LOG_LEVELS::DEBUG, "Position Report Timer Interval", (int)(timer_position_report.getInterval()));
 
             timer_execution_led.reset();
         }
 
         //Update mission state
         logger.event(LOG_LEVELS::DEBUG, "Updating Mission State subsystem.");
-        if(!mission_state.update(current_telemetry, launch_switch_state, silence_switch_state))
+        if(!mission_state.update(current_telemetry, arm_switch_state, silence_switch_state))
         {
             logger.event(LOG_LEVELS::ERROR, "Failed to update Mission State subsystem!");
         }
@@ -335,47 +351,60 @@ void loop() {
 void setTimers(MissionStateFunction function)
 {    
     timer_telemetry_check.setInterval(function.telemetry_check_interval);
-    timer_telemetry_report.setInterval(function.telemetry_report_interval);
     timer_telemetry_log.setInterval(function.telemetry_log_interval);
+    timer_attitude_report.setInterval(function.attitude_report_interval);
     timer_position_report.setInterval(function.position_report_interval);
 }
 
 void handleMessageCallback(hdlcMessage message)
 {
-    logger.event(LOG_LEVELS::INFO, "Received a message!");
+    logger.event(LOG_LEVELS::DEBUG, "Received a message!");
 
     switch(message.command)
     {
-        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_TELEMETRY:
-            logger.event(LOG_LEVELS::INFO, "Received telemetry report.");
+        case MESSAGE_TYPES::MESSAGE_TYPE_HEARTBEAT:
+            logger.event(LOG_LEVELS::INFO, "Received message: Heartbeat.");
+            handleMessageHeartbeat(message);
+            break;
+        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ATTITUDE:
+            logger.event(LOG_LEVELS::INFO, "Received message: Attitude Report.");
             handleMessageTelemetryReport(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION:
-            logger.event(LOG_LEVELS::INFO, "Received position report.");
+            logger.event(LOG_LEVELS::INFO, "Received message: Position Report.");
             handleMessagePositionReport(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ARM:
-            logger.event(LOG_LEVELS::INFO, "Received takeoff command.");
+            logger.event(LOG_LEVELS::INFO, "Received command: Arm.");
             handleMessageCommandArm(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_DISARM:
-            logger.event(LOG_LEVELS::INFO, "Received abort takeoff message.");
+            logger.event(LOG_LEVELS::INFO, "Received command: Disarm.");
             handleMessageCommandDisarm(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_STATE:
-            logger.event(LOG_LEVELS::INFO, "Received set state command.");
+            logger.event(LOG_LEVELS::INFO, "Received command: Set State.");
             handleMessageCommandSetState(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK:
-            logger.event(LOG_LEVELS::INFO, "Received acknowledgement.");
+            logger.event(LOG_LEVELS::INFO, "Received protocol message: Ack.");
             handleMessageProtoAck(message);
+            break;
+        case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_NACK:
+            logger.event(LOG_LEVELS::INFO, "Received protocol message: Nack.");
+            handleMessageProtoNack(message);
             break;
     }
 }
 
+void handleMessageHeartbeat(hdlcMessage message)
+{
+    logger.event(LOG_LEVELS::WARNING, "Ignoring heartbeat message.");
+}
+
 void handleMessageTelemetryReport(hdlcMessage message)
 {
-    logger.event(LOG_LEVELS::WARNING, "Ignoring telemetry report message.");
+    logger.event(LOG_LEVELS::WARNING, "Ignoring attitude report message.");
 }
 
 void handleMessagePositionReport(hdlcMessage message)
@@ -403,18 +432,63 @@ void handleMessageProtoAck(hdlcMessage message)
 
 }
 
-void sendTelemetryReport(TelemetryStruct& telemetry)
+void handleMessageProtoNack(hdlcMessage message)
+{
+
+}
+
+void sendHeartbeat(MISSION_STATES mission_state)
 {
     hdlcMessage message;
-    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_TELEMETRY;
-    message.length = sizeof(telemetry);
+    message.command = MESSAGE_TYPES::MESSAGE_TYPE_HEARTBEAT;
+    message.length = 3;
+    message.payload[0] = node_id;
+    message.payload[1] = mission_state;
 
-    int i = 0;
-    const uint8_t* temp_pointer = (const uint8_t*)&telemetry;
+    radio.send(message);
+    cellular.send(message);
+}
 
-    for (i = 0; i < message.length; i++)
+void sendAttitudeReport(TelemetryStruct& telemetry)
+{
+    hdlcMessage message;
+    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ATTITUDE;
+    message.length = 5 * sizeof(float) + 2;
+
+    int values = 0;
+    int bytes = 0;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[i] = *temp_pointer++;
+        message.payload[values + bytes] = telemetry.roll.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.pitch.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.heading.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.temperature.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.pressure.bytes[bytes];
     }
 
     radio.send(message);
@@ -425,14 +499,49 @@ void sendPositionReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION;
-    message.length = 3 * sizeof(float);
+    message.length = 6 * sizeof(float) + 2;
 
-    int i = 0;
-    const uint8_t* temp_pointer = (const uint8_t*)&telemetry;
+    int values = 0;
+    int bytes = 0;
 
-    for (i = 0; i < message.length; i++)
+    for (bytes = 0; bytes < sizeof(float); bytes++)
     {
-        message.payload[i] = *temp_pointer++;
+        message.payload[values + bytes] = telemetry.latitude.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.longitude.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.altitude.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.altitude_relative.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.altitude_barometric.bytes[bytes];
+    }
+
+    values++;
+
+    for (bytes = 0; bytes < sizeof(float); bytes++)
+    {
+        message.payload[values + bytes] = telemetry.course.bytes[bytes];
     }
 
     radio.send(message);
@@ -452,19 +561,20 @@ void sendAck(MESSAGE_TYPES type)
 
 void logTelemetry(TelemetryStruct& telemetry)
 {
-    int telemetry_size = 10;
+    int telemetry_size = 11;
     float temp_telemetry_array[telemetry_size];
 
-    temp_telemetry_array[0] = telemetry.latitude;
-    temp_telemetry_array[1] = telemetry.longitude;
-    temp_telemetry_array[2] = telemetry.altitude;
-    temp_telemetry_array[3] = telemetry.altitude_barometric;
-    temp_telemetry_array[4] = telemetry.roll;
-    temp_telemetry_array[5] = telemetry.pitch;
-    temp_telemetry_array[6] = telemetry.heading;
-    temp_telemetry_array[7] = telemetry.course;
-    temp_telemetry_array[8] = telemetry.temperature;
-    temp_telemetry_array[9] = telemetry.pressure;
+    temp_telemetry_array[0] = telemetry.latitude.value;
+    temp_telemetry_array[1] = telemetry.longitude.value;
+    temp_telemetry_array[2] = telemetry.altitude.value;
+    temp_telemetry_array[3] = telemetry.altitude_relative.value;
+    temp_telemetry_array[4] = telemetry.altitude_barometric.value;
+    temp_telemetry_array[5] = telemetry.roll.value;
+    temp_telemetry_array[6] = telemetry.pitch.value;
+    temp_telemetry_array[7] = telemetry.heading.value;
+    temp_telemetry_array[8] = telemetry.course.value;
+    temp_telemetry_array[9] = telemetry.temperature.value;
+    temp_telemetry_array[10] = telemetry.pressure.value;
 
     telemetry_logger.entry(temp_telemetry_array, telemetry_size, true);
 }
