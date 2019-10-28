@@ -440,10 +440,11 @@ void handleMessageProtoNack(hdlcMessage message)
 void sendHeartbeat(MISSION_STATES mission_state)
 {
     hdlcMessage message;
+    message.node_id = node_id;
+    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_HEARTBEAT;
-    message.length = 2;
-    message.payload[0] = node_id;
-    message.payload[1] = mission_state;
+    message.length = 1;
+    message.payload[0] = mission_state;
 
     radio.send(message);
     cellular.send(message);
@@ -452,6 +453,8 @@ void sendHeartbeat(MISSION_STATES mission_state)
 void sendAttitudeReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
+    message.node_id = node_id;
+    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ATTITUDE;
     message.length = 5 * sizeof(float);
 
@@ -498,6 +501,8 @@ void sendAttitudeReport(TelemetryStruct& telemetry)
 void sendPositionReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
+    message.node_id = node_id;
+    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION;
     message.length = 6 * sizeof(float);
 
@@ -551,6 +556,8 @@ void sendPositionReport(TelemetryStruct& telemetry)
 void sendAck(MESSAGE_TYPES type)
 {
     hdlcMessage message;
+    message.node_id = node_id;
+    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK;
     message.length = 1;
     message.payload[0] = type;
