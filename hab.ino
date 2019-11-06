@@ -60,6 +60,7 @@ void setTimers(MissionStateFunction function);
 void handleMessageCallback(hdlcMessage message);
 void handleMessageTelemetryReport(hdlcMessage message);
 void handleMessagePositionReport(hdlcMessage message);
+void handleMessageEnvironmentReport(hdlcMessage message);
 void handleMessageCommandArm(hdlcMessage message);
 void handleMessageCommandDisarm(hdlcMessage message);
 void handleMessageCommandSetState(hdlcMessage message);
@@ -72,6 +73,7 @@ void sendAttitudeReport(TelemetryStruct& telemetry);
 void sendPositionReport(TelemetryStruct& telemetry);
 void sendEnvironmentReport(TelemetryStruct& telemetry);
 void sendAck(MESSAGE_TYPES type);
+void sendNack(MESSAGE_TYPES type);
 
 void stop();
 
@@ -377,6 +379,10 @@ void handleMessageCallback(hdlcMessage message)
             logger.event(LOG_LEVELS::INFO, "Received message: Position Report.");
             handleMessagePositionReport(message);
             break;
+        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ENVIRONMENT:
+            logger.event(LOG_LEVELS::INFO, "Received message: Environment Report.");
+            handleMessageEnvironmentReport(message);
+            break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ARM:
             logger.event(LOG_LEVELS::INFO, "Received command: Arm.");
             handleMessageCommandArm(message);
@@ -413,6 +419,11 @@ void handleMessageTelemetryReport(hdlcMessage message)
 void handleMessagePositionReport(hdlcMessage message)
 {
     logger.event(LOG_LEVELS::WARNING, "Ignoring position report message.");
+}
+
+void handleMessageEnvironmentReport(hdlcMessage message)
+{
+    logger.event(LOG_LEVELS::WARNING, "Ignoring environment report message.");
 }
 
 void handleMessageCommandArm(hdlcMessage message)
@@ -488,41 +499,39 @@ void sendPositionReport(TelemetryStruct& telemetry)
 
 void sendEnvironmentReport(TelemetryStruct& telemetry)
 {
-    /*
     hdlcMessage message;
-    message.node_id = node_id_;
-    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
-    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ENVIRONMENT;
-    message.length = 2 * sizeof(float);
+    smpMessageReportEnvironment environment;
 
-    int data_position = 0;
-    int bytes = 0;
+    environment.temperature.value = telemetry.temperature;
+    environment.pressure.value =  telemetry.pressure;
 
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.temperature.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.pressure.bytes[bytes];
-    }
+    smpMessageReportEnvironmentEncode(node_id_, node_type_, environment, message);
 
     radio.send(message);
     cellular.send(message);
-    */
 }
 
 void sendAck(MESSAGE_TYPES type)
 {
     hdlcMessage message;
-    message.node_id = node_id_;
-    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
-    message.command = MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK;
-    message.length = 1;
-    message.payload[0] = type;
+    smpMessageProtoAck ack;
+
+    ack.type = type;
+
+    smpMessageProtoAckEncode(node_id_, node_type_, ack, message);
+
+    radio.send(message);
+    cellular.send(message);
+}
+
+void sendNack(MESSAGE_TYPES type)
+{
+    hdlcMessage message;
+    smpMessageProtoNack nack;
+
+    nack.type = type;
+
+    smpMessageProtoNackEncode(node_id_, node_type_, nack, message);
 
     radio.send(message);
     cellular.send(message);
