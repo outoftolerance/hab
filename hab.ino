@@ -70,6 +70,7 @@ void sendHeartbeat(MissionState& mission_state);
 void logTelemetry(TelemetryStruct& telemetry);
 void sendAttitudeReport(TelemetryStruct& telemetry);
 void sendPositionReport(TelemetryStruct& telemetry);
+void sendEnvironmentReport(TelemetryStruct& telemetry);
 void sendAck(MESSAGE_TYPES type);
 
 void stop();
@@ -81,7 +82,8 @@ Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                      
 DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
 Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream, GPS_FIX_STATUS);     /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
-int node_id = 1;
+uint8_t node_id_ = 1;
+uint8_t node_type_ = NODE_TYPES::NODE_TYPE_BALLOON;
 
 MissionState mission_state;         /**< Mission state state machine object */
 Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
@@ -99,7 +101,7 @@ const String telemetry_log_header = "ts,lat,lon,alt,alt_rel,alt_baro,roll,pitch,
  */
 void setup() {
     //Sleep until debug can connect
-    while(!Serial);
+    //while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
@@ -256,6 +258,7 @@ void loop() {
         {
             logger.event(LOG_LEVELS::DEBUG, "Sending attitude report message.");
             sendAttitudeReport(current_telemetry);
+            sendEnvironmentReport(current_telemetry);
 
             timer_attitude_report.reset();
         }
@@ -305,19 +308,19 @@ void loop() {
             sendHeartbeat(mission_state.get());
 
             //Print a bunch of debug information
-            logger.event(LOG_LEVELS::DEBUG, "Current GPS Latitude   ", current_telemetry.latitude.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current GPS Longitude  ", current_telemetry.longitude.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current GPS Altitude   ", current_telemetry.altitude.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current GPS Course     ", current_telemetry.course.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current GPS Velocity V ", current_telemetry.velocity_vertical.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current GPS Velocity H ", current_telemetry.velocity_horizontal.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Roll       ", current_telemetry.roll.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Pitch      ", current_telemetry.pitch.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Heading    ", current_telemetry.heading.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Altitude   ", current_telemetry.altitude_barometric.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Pressure   ", current_telemetry.pressure.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Temperature", current_telemetry.temperature.value);
-            logger.event(LOG_LEVELS::DEBUG, "Current Rel Altitude   ", current_telemetry.altitude_relative.value);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Latitude   ", current_telemetry.latitude);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Longitude  ", current_telemetry.longitude);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Altitude   ", current_telemetry.altitude);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Course     ", current_telemetry.course);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Velocity V ", current_telemetry.velocity_vertical);
+            logger.event(LOG_LEVELS::DEBUG, "Current GPS Velocity H ", current_telemetry.velocity_horizontal);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Roll       ", current_telemetry.roll);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Pitch      ", current_telemetry.pitch);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Heading    ", current_telemetry.heading);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Altitude   ", current_telemetry.altitude_barometric);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Pressure   ", current_telemetry.pressure);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Temperature", current_telemetry.temperature);
+            logger.event(LOG_LEVELS::DEBUG, "Current Rel Altitude   ", current_telemetry.altitude_relative);
             logger.event(LOG_LEVELS::DEBUG, "Current Arm Sw State    ", arm_switch_state);
             logger.event(LOG_LEVELS::DEBUG, "Current Silence Sw State", silence_switch_state);
             logger.event(LOG_LEVELS::DEBUG, "Current Mission State", mission_state.get());
@@ -440,11 +443,11 @@ void handleMessageProtoNack(hdlcMessage message)
 void sendHeartbeat(MISSION_STATES mission_state)
 {
     hdlcMessage message;
-    message.node_id = node_id;
-    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
-    message.command = MESSAGE_TYPES::MESSAGE_TYPE_HEARTBEAT;
-    message.length = 1;
-    message.payload[0] = mission_state;
+    smpMessageHeartbeat heartbeat;
+
+    heartbeat.mission_state = mission_state;
+
+    smpMessageHeartbeatEncode(node_id_, node_type_, heartbeat, message);
 
     radio.send(message);
     cellular.send(message);
@@ -453,34 +456,47 @@ void sendHeartbeat(MISSION_STATES mission_state)
 void sendAttitudeReport(TelemetryStruct& telemetry)
 {
     hdlcMessage message;
-    message.node_id = node_id;
+    smpMessageReportAttitude attitude;
+
+    attitude.roll.value = telemetry.roll;
+    attitude.pitch.value = telemetry.pitch;
+    attitude.heading.value = telemetry.heading;
+
+    smpMessageReportAttitudeEncode(node_id_, node_type_, attitude, message);
+
+    radio.send(message);
+    cellular.send(message);
+}
+
+void sendPositionReport(TelemetryStruct& telemetry)
+{
+    hdlcMessage message;
+    smpMessageReportPosition position;
+
+    position.latitude.value = telemetry.latitude;
+    position.longitude.value = telemetry.longitude;
+    position.altitude.value = telemetry.altitude;
+    position.altitude_relative.value = telemetry.altitude_relative;
+    position.altitude_barometric.value = telemetry.altitude_barometric;
+    position.course.value = telemetry.course;
+
+    smpMessageReportPositionEncode(node_id_, node_type_, position, message);
+
+    radio.send(message);
+    cellular.send(message);
+}
+
+void sendEnvironmentReport(TelemetryStruct& telemetry)
+{
+    /*
+    hdlcMessage message;
+    message.node_id = node_id_;
     message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
-    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ATTITUDE;
-    message.length = 5 * sizeof(float);
+    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ENVIRONMENT;
+    message.length = 2 * sizeof(float);
 
     int data_position = 0;
     int bytes = 0;
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.roll.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.pitch.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.heading.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
 
     for (bytes = 0; bytes < sizeof(float); bytes++)
     {
@@ -496,67 +512,13 @@ void sendAttitudeReport(TelemetryStruct& telemetry)
 
     radio.send(message);
     cellular.send(message);
-}
-
-void sendPositionReport(TelemetryStruct& telemetry)
-{
-    hdlcMessage message;
-    message.node_id = node_id;
-    message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
-    message.command = MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION;
-    message.length = 6 * sizeof(float);
-
-    int data_position = 0;
-    int bytes = 0;
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.latitude.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.longitude.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.altitude.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.altitude_relative.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.altitude_barometric.bytes[bytes];
-    }
-
-    data_position += sizeof(float);
-
-    for (bytes = 0; bytes < sizeof(float); bytes++)
-    {
-        message.payload[data_position + bytes] = telemetry.course.bytes[bytes];
-    }
-
-    radio.send(message);
-    cellular.send(message);
+    */
 }
 
 void sendAck(MESSAGE_TYPES type)
 {
     hdlcMessage message;
-    message.node_id = node_id;
+    message.node_id = node_id_;
     message.node_type = NODE_TYPES::NODE_TYPE_BALLOON;
     message.command = MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK;
     message.length = 1;
@@ -571,17 +533,17 @@ void logTelemetry(TelemetryStruct& telemetry)
     int telemetry_size = 11;
     float temp_telemetry_array[telemetry_size];
 
-    temp_telemetry_array[0] = telemetry.latitude.value;
-    temp_telemetry_array[1] = telemetry.longitude.value;
-    temp_telemetry_array[2] = telemetry.altitude.value;
-    temp_telemetry_array[3] = telemetry.altitude_relative.value;
-    temp_telemetry_array[4] = telemetry.altitude_barometric.value;
-    temp_telemetry_array[5] = telemetry.roll.value;
-    temp_telemetry_array[6] = telemetry.pitch.value;
-    temp_telemetry_array[7] = telemetry.heading.value;
-    temp_telemetry_array[8] = telemetry.course.value;
-    temp_telemetry_array[9] = telemetry.temperature.value;
-    temp_telemetry_array[10] = telemetry.pressure.value;
+    temp_telemetry_array[0] = telemetry.latitude;
+    temp_telemetry_array[1] = telemetry.longitude;
+    temp_telemetry_array[2] = telemetry.altitude;
+    temp_telemetry_array[3] = telemetry.altitude_relative;
+    temp_telemetry_array[4] = telemetry.altitude_barometric;
+    temp_telemetry_array[5] = telemetry.roll;
+    temp_telemetry_array[6] = telemetry.pitch;
+    temp_telemetry_array[7] = telemetry.heading;
+    temp_telemetry_array[8] = telemetry.course;
+    temp_telemetry_array[9] = telemetry.temperature;
+    temp_telemetry_array[10] = telemetry.pressure;
 
     telemetry_logger.entry(temp_telemetry_array, telemetry_size, true);
 }
