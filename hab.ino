@@ -490,6 +490,8 @@ void sendPositionReport(TelemetryStruct& telemetry)
     position.altitude_relative.value = telemetry.altitude_relative;
     position.altitude_barometric.value = telemetry.altitude_barometric;
     position.course.value = telemetry.course;
+    position.velocity_horizontal.value = telemetry.velocity_horizontal;
+    position.velocity_vertical.value = telemetry.velocity_vertical;
 
     smpMessageReportPositionEncode(node_id_, node_type_, position, message);
 
