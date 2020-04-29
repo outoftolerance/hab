@@ -47,36 +47,6 @@ Stream& gps_input_stream = Serial1;                 /**< GPS device input stream
 Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream, this is of type HardwareSerial */
 Stream& cellular_input_output_stream = Serial3;     /**< Cellular input output stream, this is of type HardwareSerial */
 
-/**
- * @brief      Sets timers based on mission state
- */
-void setTimers(MissionStateFunction function);
-
-/**
- * @brief      Callback function handles new messages from HDLC
- *
- * @param[in]  message  The message to be handled
- */
-void handleMessageCallback(hdlcMessage message);
-void handleMessageTelemetryReport(hdlcMessage message);
-void handleMessagePositionReport(hdlcMessage message);
-void handleMessageEnvironmentReport(hdlcMessage message);
-void handleMessageCommandArm(hdlcMessage message);
-void handleMessageCommandDisarm(hdlcMessage message);
-void handleMessageCommandSetState(hdlcMessage message);
-void handleMessageProtoAck(hdlcMessage message);
-void handleMessageProtoNack(hdlcMessage message);
-
-void sendHeartbeat(MissionState& mission_state);
-void logTelemetry(TelemetryStruct& telemetry);
-void sendAttitudeReport(TelemetryStruct& telemetry);
-void sendPositionReport(TelemetryStruct& telemetry);
-void sendEnvironmentReport(TelemetryStruct& telemetry);
-void sendAck(MESSAGE_TYPES type);
-void sendNack(MESSAGE_TYPES type);
-
-void stop();
-
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);                            /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);                      /**< HDLC messaging object, linked to message callback */
 RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
@@ -89,8 +59,7 @@ uint8_t node_type_ = NODE_TYPES::NODE_TYPE_BALLOON;
 
 MissionState mission_state;         /**< Mission state state machine object */
 Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
-Timer timer_attitude_report;       /**< Timer sets interval between reporting telemetry */
-Timer timer_position_report;        /**< Timer sets interval between reporting position */
+Timer timer_telemetry_report;        /**< Timer sets interval between reporting telemetry */
 Timer timer_telemetry_log;          /**< Timer sets interval between logging telemetry */
 Timer timer_execution_led;          /**< Timer sets intercal between run led blinks */
 
@@ -191,7 +160,7 @@ void loop() {
     bool arm_switch_state = false;                       /**< Current launch switch state */
     bool silence_switch_state = false;                      /**< Current silsnce switch state */
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
-    TelemetryStruct current_telemetry;                      /**< Current telemetry */
+    Telemetry::TelemetryStruct current_telemetry;                      /**< Current telemetry */
     timer_execution_led.setInterval(1000);                  /**< Sets execution blinky LED interval */
 
     //Set initial program timers
@@ -200,9 +169,8 @@ void loop() {
 
     //Start system timers
     timer_telemetry_check.start();
-    timer_attitude_report.start();
     timer_telemetry_log.start();
-    timer_position_report.start();
+    timer_telemetry_report.start();
     timer_execution_led.start();
 
     while(1)
@@ -255,23 +223,13 @@ void loop() {
             timer_telemetry_log.reset();
         }
 
-        //Attitude Report
-        if(timer_attitude_report.check())
+        //Telemetry Report
+        if(timer_telemetry_report.check())
         {
-            logger.event(LOG_LEVELS::DEBUG, "Sending attitude report message.");
-            sendAttitudeReport(current_telemetry);
-            sendEnvironmentReport(current_telemetry);
+            logger.event(LOG_LEVELS::DEBUG, "Sending telemetry report message.");
+            sendReportTelemetry(current_telemetry);
 
-            timer_attitude_report.reset();
-        }
-
-        //Position Report
-        if(timer_position_report.check())
-        {
-            logger.event(LOG_LEVELS::DEBUG, "Sending position report message.");
-            sendPositionReport(current_telemetry);
-
-            timer_position_report.reset();
+            timer_telemetry_report.reset();
         }
 
         //Buzzer Beeper
@@ -326,11 +284,10 @@ void loop() {
             logger.event(LOG_LEVELS::DEBUG, "Current Arm Sw State    ", arm_switch_state);
             logger.event(LOG_LEVELS::DEBUG, "Current Silence Sw State", silence_switch_state);
             logger.event(LOG_LEVELS::DEBUG, "Current Mission State", mission_state.get());
-            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Started", timer_attitude_report.isStarted());
-            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Set", timer_attitude_report.isSet());
-            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Interval", (int)(timer_attitude_report.getInterval()));
+            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Started", timer_telemetry_report.isStarted());
+            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Set", timer_telemetry_report.isSet());
+            logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Interval", (int)(timer_telemetry_report.getInterval()));
             logger.event(LOG_LEVELS::DEBUG, "Telemetry Log Timer Interval", (int)(timer_telemetry_log.getInterval()));
-            logger.event(LOG_LEVELS::DEBUG, "Position Report Timer Interval", (int)(timer_position_report.getInterval()));
 
             timer_execution_led.reset();
         }
@@ -357,8 +314,7 @@ void setTimers(MissionStateFunction function)
 {    
     timer_telemetry_check.setInterval(function.telemetry_check_interval);
     timer_telemetry_log.setInterval(function.telemetry_log_interval);
-    timer_attitude_report.setInterval(function.attitude_report_interval);
-    timer_position_report.setInterval(function.position_report_interval);
+    timer_telemetry_report.setInterval(function.telemetry_report_interval);
 }
 
 void handleMessageCallback(hdlcMessage message)
@@ -371,17 +327,9 @@ void handleMessageCallback(hdlcMessage message)
             logger.event(LOG_LEVELS::INFO, "Received message: Heartbeat.");
             handleMessageHeartbeat(message);
             break;
-        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ATTITUDE:
-            logger.event(LOG_LEVELS::INFO, "Received message: Attitude Report.");
-            handleMessageTelemetryReport(message);
-            break;
-        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_POSITION:
+        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_TELEMETRY:
             logger.event(LOG_LEVELS::INFO, "Received message: Position Report.");
-            handleMessagePositionReport(message);
-            break;
-        case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_ENVIRONMENT:
-            logger.event(LOG_LEVELS::INFO, "Received message: Environment Report.");
-            handleMessageEnvironmentReport(message);
+            handleMessageTelemetryReport(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ARM:
             logger.event(LOG_LEVELS::INFO, "Received command: Arm.");
@@ -406,47 +354,37 @@ void handleMessageCallback(hdlcMessage message)
     }
 }
 
-void handleMessageHeartbeat(hdlcMessage message)
+void handleMessageHeartbeat(hdlcMessage& message)
 {
     logger.event(LOG_LEVELS::WARNING, "Ignoring heartbeat message.");
 }
 
-void handleMessageTelemetryReport(hdlcMessage message)
+void handleMessageTelemetryReport(hdlcMessage& message)
 {
-    logger.event(LOG_LEVELS::WARNING, "Ignoring attitude report message.");
+    logger.event(LOG_LEVELS::WARNING, "Ignoring telemetry report message.");
 }
 
-void handleMessagePositionReport(hdlcMessage message)
-{
-    logger.event(LOG_LEVELS::WARNING, "Ignoring position report message.");
-}
-
-void handleMessageEnvironmentReport(hdlcMessage message)
-{
-    logger.event(LOG_LEVELS::WARNING, "Ignoring environment report message.");
-}
-
-void handleMessageCommandArm(hdlcMessage message)
+void handleMessageCommandArm(hdlcMessage& message)
 {
 
 }
 
-void handleMessageCommandDisarm(hdlcMessage message)
+void handleMessageCommandDisarm(hdlcMessage& message)
 {
 
 }
 
-void handleMessageCommandSetState(hdlcMessage message)
+void handleMessageCommandSetState(hdlcMessage& message)
 {
 
 }
 
-void handleMessageProtoAck(hdlcMessage message)
+void handleMessageProtoAck(hdlcMessage& message)
 {
 
 }
 
-void handleMessageProtoNack(hdlcMessage message)
+void handleMessageProtoNack(hdlcMessage& message)
 {
 
 }
@@ -464,50 +402,26 @@ void sendHeartbeat(MISSION_STATES mission_state)
     cellular.send(message);
 }
 
-void sendAttitudeReport(TelemetryStruct& telemetry)
+void sendReportTelemetry(Telemetry::TelemetryStruct& telemetry)
 {
     hdlcMessage message;
-    smpMessageReportAttitude attitude;
+    smpMessageReportTelemetry telemetry_report;
 
-    attitude.roll.value = telemetry.roll;
-    attitude.pitch.value = telemetry.pitch;
-    attitude.heading.value = telemetry.heading;
+    telemetry_report.latitude.value = telemetry.latitude;
+    telemetry_report.longitude.value = telemetry.longitude;
+    telemetry_report.altitude.value = telemetry.altitude;
+    telemetry_report.altitude_relative.value = telemetry.altitude_relative;
+    telemetry_report.altitude_barometric.value = telemetry.altitude_barometric;
+    telemetry_report.velocity_horizontal.value = telemetry.velocity_horizontal;
+    telemetry_report.velocity_vertical.value = telemetry.velocity_vertical;
+    telemetry_report.roll.value = telemetry.roll;
+    telemetry_report.pitch.value = telemetry.pitch;
+    telemetry_report.heading.value = telemetry.heading;
+    telemetry_report.course.value = telemetry.course;
+    telemetry_report.temperature.value = telemetry.temperature;
+    telemetry_report.pressure.value = telemetry.pressure;
 
-    smpMessageReportAttitudeEncode(node_id_, node_type_, attitude, message);
-
-    radio.send(message);
-    cellular.send(message);
-}
-
-void sendPositionReport(TelemetryStruct& telemetry)
-{
-    hdlcMessage message;
-    smpMessageReportPosition position;
-
-    position.latitude.value = telemetry.latitude;
-    position.longitude.value = telemetry.longitude;
-    position.altitude.value = telemetry.altitude;
-    position.altitude_relative.value = telemetry.altitude_relative;
-    position.altitude_barometric.value = telemetry.altitude_barometric;
-    position.course.value = telemetry.course;
-    position.velocity_horizontal.value = telemetry.velocity_horizontal;
-    position.velocity_vertical.value = telemetry.velocity_vertical;
-
-    smpMessageReportPositionEncode(node_id_, node_type_, position, message);
-
-    radio.send(message);
-    cellular.send(message);
-}
-
-void sendEnvironmentReport(TelemetryStruct& telemetry)
-{
-    hdlcMessage message;
-    smpMessageReportEnvironment environment;
-
-    environment.temperature.value = telemetry.temperature;
-    environment.pressure.value =  telemetry.pressure;
-
-    smpMessageReportEnvironmentEncode(node_id_, node_type_, environment, message);
+    smpMessageReportTelemetryEncode(node_id_, node_type_, telemetry_report, message);
 
     radio.send(message);
     cellular.send(message);
@@ -539,7 +453,7 @@ void sendNack(MESSAGE_TYPES type)
     cellular.send(message);
 }
 
-void logTelemetry(TelemetryStruct& telemetry)
+void logTelemetry(Telemetry::TelemetryStruct& telemetry)
 {
     int telemetry_size = 11;
     float temp_telemetry_array[telemetry_size];
