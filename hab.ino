@@ -57,11 +57,12 @@ bool update_rtc_from_gps = false;                                               
 uint8_t node_id_ = 1;
 uint8_t node_type_ = NODE_TYPES::NODE_TYPE_BALLOON;
 
-MissionState mission_state;         /**< Mission state state machine object */
-Timer timer_telemetry_check;        /**< Timer sets interval between checking telemetry */
-Timer timer_telemetry_report;        /**< Timer sets interval between reporting telemetry */
-Timer timer_telemetry_log;          /**< Timer sets interval between logging telemetry */
-Timer timer_execution_led;          /**< Timer sets intercal between run led blinks */
+MissionState mission_state;                     /**< Mission state state machine object */
+Timer timer_telemetry_check;                    /**< Timer sets interval between checking telemetry */
+Timer timer_telemetry_report;                   /**< Timer sets interval between reporting telemetry */
+bool timer_telemetry_report_override = false;   /**< Manual interval override flag (for command_set_report_interval)*/
+Timer timer_telemetry_log;                      /**< Timer sets interval between logging telemetry */
+Timer timer_execution_led;                      /**< Timer sets intercal between run led blinks */
 
 const String telemetry_log_name = "tlm.csv";
 const String telemetry_log_header = "ts,lat,lon,alt,alt_rel,alt_baro,roll,pitch,heading,course,temp,pres";
@@ -311,10 +312,14 @@ void loop() {
 }
 
 void setTimers(MissionStateFunction function)
-{    
+{
     timer_telemetry_check.setInterval(function.telemetry_check_interval);
     timer_telemetry_log.setInterval(function.telemetry_log_interval);
-    timer_telemetry_report.setInterval(function.telemetry_report_interval);
+
+    if(!timer_telemetry_report_override)
+    {
+        timer_telemetry_report.setInterval(function.telemetry_report_interval);
+    }
 }
 
 void handleMessageCallback(hdlcMessage message)
@@ -342,6 +347,10 @@ void handleMessageCallback(hdlcMessage message)
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_STATE:
             logger.event(LOG_LEVELS::INFO, "Received command: Set State.");
             handleMessageCommandSetState(message);
+            break;
+        case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_REPORT_RATE:
+            logger.event(LOG_LEVELS::INFO, "Received command: Set Report Rate.");
+            handleMessageCommandSetReportRate(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK:
             logger.event(LOG_LEVELS::INFO, "Received protocol message: Ack.");
@@ -377,6 +386,27 @@ void handleMessageCommandDisarm(hdlcMessage& message)
 void handleMessageCommandSetState(hdlcMessage& message)
 {
 
+}
+
+void handleMessageCommandSetReportRate(hdlcMessage& message)
+{
+    smpMessageCommandSetReportRate command;
+    smpMessageCommandSetReportRateDecode(message, command);
+
+    switch(command.report.value)
+    {
+        case MESSAGE_TYPE_REPORT_TELEMETRY:
+            if(command.rate.value > 0)
+            {
+                timer_telemetry_report.setInterval(1000 / command.rate.value);
+                timer_telemetry_report_override = true;
+            }
+            else
+            {
+                timer_telemetry_report_override = false;
+            }
+            break;
+    }
 }
 
 void handleMessageProtoAck(hdlcMessage& message)
