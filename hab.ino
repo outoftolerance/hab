@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Servo.h>
 #include "wiring_private.h" // For ATSAMD M0 pinPeripheral() function
 
 #include <Timer.h>
@@ -42,6 +43,8 @@ void SERCOM2_Handler()
   Serial3.IrqHandler();
 }
 
+Servo indicator_led;                                /**< External LED indicator lights, controlled by PWM like a servo */
+
 Stream& logging_output_stream = Serial;             /**< Logging output stream, this is of type Serial_ */
 Stream& gps_input_stream = Serial1;                 /**< GPS device input stream, this is of type HardwareSerial */
 Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream, this is of type HardwareSerial */
@@ -54,6 +57,7 @@ Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                      
 DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
 Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream, GPS_FIX_STATUS);     /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
+
 uint8_t node_id_ = 1;
 uint8_t node_type_ = NODE_TYPES::NODE_TYPE_BALLOON;
 
@@ -73,7 +77,7 @@ const String telemetry_log_header = "ts,lat,lon,alt,alt_rel,alt_baro,roll,pitch,
  */
 void setup() {
     //Sleep until debug can connect
-    //while(!Serial);
+    while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
@@ -82,6 +86,9 @@ void setup() {
     pinMode(LED_EXTERNAL, OUTPUT);
     pinMode(GPS_FIX_STATUS, INPUT);
     pinMode(BUZZER_EXTERNAL, OUTPUT);
+
+    //Bind servos
+    indicator_led.attach(LED_EXTERNAL);
     
     //Start debug serial port
     logger.init();
@@ -246,11 +253,11 @@ void loop() {
         //LED Blinker
         if(current_mission_state_function.led_enabled)
         {
-            digitalWrite(LED_EXTERNAL, true);
+            indicator_led.writeMicroseconds(2000);
         }
         else
         {
-            digitalWrite(LED_EXTERNAL, false);
+            indicator_led.writeMicroseconds(1000);
         }
 
         //Execution LED indicator blinkies
