@@ -69,7 +69,7 @@ Timer timer_telemetry_log;                      /**< Timer sets interval between
 Timer timer_execution_led;                      /**< Timer sets intercal between run led blinks */
 
 const String telemetry_log_name = "tlm.csv";
-const String telemetry_log_header = "ts,lat,lon,alt,alt_rel,alt_baro,roll,pitch,heading,course,temp,pres";
+const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,elev,azmt,gps_snr,vel_vert,vel_hor,roll,pitch,hdng,crs,temp,pres";
 
 /**
  * @brief System setup function
@@ -414,6 +414,8 @@ void handleMessageCommandSetReportRate(hdlcMessage& message)
             }
             break;
     }
+
+    sendAck((MESSAGE_TYPES)message.command);
 }
 
 void handleMessageProtoAck(hdlcMessage& message)
@@ -447,8 +449,12 @@ void sendReportTelemetry(Telemetry::TelemetryStruct& telemetry)
     telemetry_report.latitude.value = telemetry.latitude;
     telemetry_report.longitude.value = telemetry.longitude;
     telemetry_report.altitude.value = telemetry.altitude;
+    telemetry_report.altitude.value = telemetry.altitude_ellipsoid;
     telemetry_report.altitude_relative.value = telemetry.altitude_relative;
     telemetry_report.altitude_barometric.value = telemetry.altitude_barometric;
+    telemetry_report.elevation.value = telemetry.elevation;
+    telemetry_report.azimuth.value = telemetry.azimuth;
+    telemetry_report.gps_snr.value = telemetry.gps_snr;
     telemetry_report.velocity_horizontal.value = telemetry.velocity_horizontal;
     telemetry_report.velocity_vertical.value = telemetry.velocity_vertical;
     telemetry_report.roll.value = telemetry.roll;
@@ -464,12 +470,12 @@ void sendReportTelemetry(Telemetry::TelemetryStruct& telemetry)
     cellular.send(message);
 }
 
-void sendAck(MESSAGE_TYPES type)
+void sendAck(MESSAGE_TYPES command)
 {
     hdlcMessage message;
     smpMessageProtoAck ack;
 
-    ack.type = type;
+    ack.command.value = command;
 
     smpMessageProtoAckEncode(node_id_, node_type_, ack, message);
 
@@ -477,12 +483,12 @@ void sendAck(MESSAGE_TYPES type)
     cellular.send(message);
 }
 
-void sendNack(MESSAGE_TYPES type)
+void sendNack(MESSAGE_TYPES command)
 {
     hdlcMessage message;
     smpMessageProtoNack nack;
 
-    nack.type = type;
+    nack.command.value = command;
 
     smpMessageProtoNackEncode(node_id_, node_type_, nack, message);
 
@@ -492,20 +498,26 @@ void sendNack(MESSAGE_TYPES type)
 
 void logTelemetry(Telemetry::TelemetryStruct& telemetry)
 {
-    int telemetry_size = 11;
+    int telemetry_size = 15;
     float temp_telemetry_array[telemetry_size];
 
     temp_telemetry_array[0] = telemetry.latitude;
     temp_telemetry_array[1] = telemetry.longitude;
     temp_telemetry_array[2] = telemetry.altitude;
-    temp_telemetry_array[3] = telemetry.altitude_relative;
-    temp_telemetry_array[4] = telemetry.altitude_barometric;
-    temp_telemetry_array[5] = telemetry.roll;
-    temp_telemetry_array[6] = telemetry.pitch;
-    temp_telemetry_array[7] = telemetry.heading;
-    temp_telemetry_array[8] = telemetry.course;
-    temp_telemetry_array[9] = telemetry.temperature;
-    temp_telemetry_array[10] = telemetry.pressure;
+    temp_telemetry_array[3] = telemetry.altitude_ellipsoid;
+    temp_telemetry_array[4] = telemetry.altitude_relative;
+    temp_telemetry_array[5] = telemetry.altitude_barometric;
+    temp_telemetry_array[6] = telemetry.elevation;
+    temp_telemetry_array[7] = telemetry.azimuth;
+    temp_telemetry_array[8] = telemetry.gps_snr;
+    temp_telemetry_array[9] = telemetry.velocity_vertical;
+    temp_telemetry_array[10] = telemetry.velocity_horizontal;
+    temp_telemetry_array[11] = telemetry.roll;
+    temp_telemetry_array[12] = telemetry.pitch;
+    temp_telemetry_array[13] = telemetry.heading;
+    temp_telemetry_array[14] = telemetry.course;
+    temp_telemetry_array[15] = telemetry.temperature;
+    temp_telemetry_array[16] = telemetry.pressure;
 
     telemetry_logger.entry(temp_telemetry_array, telemetry_size, true);
 }
