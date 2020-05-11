@@ -77,14 +77,13 @@ const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,el
  */
 void setup() {
     //Sleep until debug can connect
-    while(!Serial);
+    //while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(ARM_SWITCH, INPUT);
     pinMode(SILENCE_SWITCH, INPUT);
     pinMode(LED_EXTERNAL, OUTPUT);
-    pinMode(GPS_FIX_STATUS, INPUT);
     pinMode(BUZZER_EXTERNAL, OUTPUT);
 
     //Bind servos
@@ -234,7 +233,7 @@ void loop() {
         //Telemetry Report
         if(timer_telemetry_report.check())
         {
-            logger.event(LOG_LEVELS::DEBUG, "Sending telemetry report message.");
+            logger.event(LOG_LEVELS::INFO, "Sending telemetry report message.");
             sendReportTelemetry(current_telemetry);
 
             timer_telemetry_report.reset();
@@ -336,35 +335,35 @@ void handleMessageCallback(hdlcMessage message)
     switch(message.command)
     {
         case MESSAGE_TYPES::MESSAGE_TYPE_HEARTBEAT:
-            logger.event(LOG_LEVELS::INFO, "Received message: Heartbeat.");
+            logger.event(LOG_LEVELS::DEBUG, "Received message: Heartbeat.");
             handleMessageHeartbeat(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_REPORT_TELEMETRY:
-            logger.event(LOG_LEVELS::INFO, "Received message: Position Report.");
+            logger.event(LOG_LEVELS::DEBUG, "Received message: Position Report.");
             handleMessageTelemetryReport(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_ARM:
-            logger.event(LOG_LEVELS::INFO, "Received command: Arm.");
+            logger.event(LOG_LEVELS::DEBUG, "Received command: Arm.");
             handleMessageCommandArm(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_DISARM:
-            logger.event(LOG_LEVELS::INFO, "Received command: Disarm.");
+            logger.event(LOG_LEVELS::DEBUG, "Received command: Disarm.");
             handleMessageCommandDisarm(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_STATE:
-            logger.event(LOG_LEVELS::INFO, "Received command: Set State.");
+            logger.event(LOG_LEVELS::DEBUG, "Received command: Set State.");
             handleMessageCommandSetState(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_COMMAND_SET_REPORT_RATE:
-            logger.event(LOG_LEVELS::INFO, "Received command: Set Report Rate.");
+            logger.event(LOG_LEVELS::DEBUG, "Received command: Set Report Rate.");
             handleMessageCommandSetReportRate(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_ACK:
-            logger.event(LOG_LEVELS::INFO, "Received protocol message: Ack.");
+            logger.event(LOG_LEVELS::DEBUG, "Received protocol message: Ack.");
             handleMessageProtoAck(message);
             break;
         case MESSAGE_TYPES::MESSAGE_TYPE_PROTO_NACK:
-            logger.event(LOG_LEVELS::INFO, "Received protocol message: Nack.");
+            logger.event(LOG_LEVELS::DEBUG, "Received protocol message: Nack.");
             handleMessageProtoNack(message);
             break;
     }
@@ -372,7 +371,7 @@ void handleMessageCallback(hdlcMessage message)
 
 void handleMessageHeartbeat(hdlcMessage& message)
 {
-    logger.event(LOG_LEVELS::WARNING, "Ignoring heartbeat message.");
+    logger.event(LOG_LEVELS::DEBUG, "Ignoring heartbeat message.");
 }
 
 void handleMessageTelemetryReport(hdlcMessage& message)
@@ -433,7 +432,7 @@ void sendHeartbeat(MISSION_STATES mission_state)
     hdlcMessage message;
     smpMessageHeartbeat heartbeat;
 
-    heartbeat.mission_state = mission_state;
+    heartbeat.state.value = (uint8_t)mission_state;
 
     smpMessageHeartbeatEncode(node_id_, node_type_, heartbeat, message);
 
@@ -452,17 +451,12 @@ void sendReportTelemetry(Telemetry::TelemetryStruct& telemetry)
     telemetry_report.altitude.value = telemetry.altitude_ellipsoid;
     telemetry_report.altitude_relative.value = telemetry.altitude_relative;
     telemetry_report.altitude_barometric.value = telemetry.altitude_barometric;
-    telemetry_report.elevation.value = telemetry.elevation;
-    telemetry_report.azimuth.value = telemetry.azimuth;
-    telemetry_report.gps_snr.value = telemetry.gps_snr;
     telemetry_report.velocity_horizontal.value = telemetry.velocity_horizontal;
     telemetry_report.velocity_vertical.value = telemetry.velocity_vertical;
     telemetry_report.roll.value = telemetry.roll;
     telemetry_report.pitch.value = telemetry.pitch;
     telemetry_report.heading.value = telemetry.heading;
     telemetry_report.course.value = telemetry.course;
-    telemetry_report.temperature.value = telemetry.temperature;
-    telemetry_report.pressure.value = telemetry.pressure;
 
     smpMessageReportTelemetryEncode(node_id_, node_type_, telemetry_report, message);
 
@@ -498,7 +492,7 @@ void sendNack(MESSAGE_TYPES command)
 
 void logTelemetry(Telemetry::TelemetryStruct& telemetry)
 {
-    int telemetry_size = 15;
+    int telemetry_size = 17;
     float temp_telemetry_array[telemetry_size];
 
     temp_telemetry_array[0] = telemetry.latitude;
