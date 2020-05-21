@@ -16,13 +16,14 @@
  * Creating some new Serial ports using M0 SERCOM for peripherals
  *
  * Notes for Adafruit Feather M0 pre-defined Serial ports:
- *     - Serial goes to USB port interface (PA24, PA25)
+ *     - SerialUSB goes to USB port interface (PA24, PA25)
  *     - Serial1 is broken out on the board and uses pins 1/PA10 (TX), 0/PA11 (RX)
- *     - Serial5 is on pins 30/PB22 (TX), 31/PB23 (RX) but not exposed on the board
+ *     - Serial is on pins 30/PB22 (TX), 31/PB23 (RX) but not exposed on the board
+ *     - To get this config though we comment out some lines in the variants file
  * 
  * We are adding the following:
  *     - Serial2 on pins 10/PA18 (TX), 11/PA16 (RX)
- *     - Serial3 on pins 4/PA08 (TX), 3/PA09 (RX)
+ *     - Serial3 on pins 4/PA08 (TX), 3/PA09 (RX) but not exposed on the board
  */
 Uart Serial2 (&sercom1, 11, 10, SERCOM_RX_PAD_0, UART_TX_PAD_2);    /**< Creating a second serial port using SERCOM1 */
 Uart Serial3 (&sercom2, 3, 4, SERCOM_RX_PAD_1, UART_TX_PAD_0);      /**< Creating a third serial port using SERCOM2 */
@@ -45,17 +46,18 @@ void SERCOM2_Handler()
 
 Servo indicator_led;                                /**< External LED indicator lights, controlled by PWM like a servo */
 
-Stream& logging_output_stream = Serial;             /**< Logging output stream, this is of type Serial_ */
+Stream& logging_output_stream = Serial;          /**< Logging output stream, this is of type Serial_ */
 Stream& gps_input_stream = Serial1;                 /**< GPS device input stream, this is of type HardwareSerial */
 Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream, this is of type HardwareSerial */
 Stream& cellular_input_output_stream = Serial3;     /**< Cellular input output stream, this is of type HardwareSerial */
+Stream& aprs_output_stream = Serial5;                /**< APRS output data stream, this is of type Serial_ */
 
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);                            /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);                      /**< HDLC messaging object, linked to message callback */
 RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
 Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                                      /**< Log object */
 DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
-Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream, GPS_FIX_STATUS);     /**< Telemetry object */
+Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream);     /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
 
 uint8_t node_id_ = 1;
@@ -69,7 +71,7 @@ Timer timer_telemetry_log;                      /**< Timer sets interval between
 Timer timer_execution_led;                      /**< Timer sets intercal between run led blinks */
 
 const String telemetry_log_name = "tlm.csv";
-const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,elev,azmt,gps_snr,vel_vert,vel_hor,roll,pitch,hdng,crs,temp,pres";
+const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,vel_vert,vel_hor,roll,pitch,hdng,crs,temp,pres,hdop,fix";
 
 /**
  * @brief System setup function
@@ -77,7 +79,7 @@ const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,el
  */
 void setup() {
     //Sleep until debug can connect
-    //while(!Serial);
+    while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
@@ -492,7 +494,7 @@ void sendNack(MESSAGE_TYPES command)
 
 void logTelemetry(Telemetry::TelemetryStruct& telemetry)
 {
-    int telemetry_size = 17;
+    int telemetry_size = 16;
     float temp_telemetry_array[telemetry_size];
 
     temp_telemetry_array[0] = telemetry.latitude;
@@ -501,17 +503,16 @@ void logTelemetry(Telemetry::TelemetryStruct& telemetry)
     temp_telemetry_array[3] = telemetry.altitude_ellipsoid;
     temp_telemetry_array[4] = telemetry.altitude_relative;
     temp_telemetry_array[5] = telemetry.altitude_barometric;
-    temp_telemetry_array[6] = telemetry.elevation;
-    temp_telemetry_array[7] = telemetry.azimuth;
-    temp_telemetry_array[8] = telemetry.gps_snr;
-    temp_telemetry_array[9] = telemetry.velocity_vertical;
-    temp_telemetry_array[10] = telemetry.velocity_horizontal;
-    temp_telemetry_array[11] = telemetry.roll;
-    temp_telemetry_array[12] = telemetry.pitch;
-    temp_telemetry_array[13] = telemetry.heading;
-    temp_telemetry_array[14] = telemetry.course;
-    temp_telemetry_array[15] = telemetry.temperature;
-    temp_telemetry_array[16] = telemetry.pressure;
+    temp_telemetry_array[6] = telemetry.velocity_vertical;
+    temp_telemetry_array[7] = telemetry.velocity_horizontal;
+    temp_telemetry_array[8] = telemetry.roll;
+    temp_telemetry_array[9] = telemetry.pitch;
+    temp_telemetry_array[10] = telemetry.heading;
+    temp_telemetry_array[11] = telemetry.course;
+    temp_telemetry_array[12] = telemetry.temperature;
+    temp_telemetry_array[13] = telemetry.pressure;
+    temp_telemetry_array[14] = telemetry.hdop;
+    temp_telemetry_array[15] = telemetry.fix;
 
     telemetry_logger.entry(temp_telemetry_array, telemetry_size, true);
 }
