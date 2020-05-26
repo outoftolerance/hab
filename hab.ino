@@ -80,7 +80,7 @@ const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,ve
  */
 void setup() {
     //Sleep until debug can connect
-    while(!Serial);
+    //while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
