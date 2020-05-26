@@ -2,6 +2,7 @@
 #include <Servo.h>
 #include "wiring_private.h" // For ATSAMD M0 pinPeripheral() function
 
+#include <SimpleUtils.h>
 #include <Timer.h>
 #include <Telemetry.h>
 #include <Log.h>
@@ -57,7 +58,7 @@ SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);      
 RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
 Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                                      /**< Log object */
 DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
-Telemetry telemetry(IMU_TYPES::IMU_TYPE_ADAFRUIT_10DOF, &gps_input_stream);     /**< Telemetry object */
+Telemetry telemetry(&gps_input_stream);     /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
 
 uint8_t node_id_ = 1;
@@ -166,10 +167,10 @@ void setup() {
  * @details Called after setup() function, loops inifiteley, everything happens here
  */
 void loop() {
-    bool arm_switch_state = false;                       /**< Current launch switch state */
+    bool arm_switch_state = false;                          /**< Current launch switch state */
     bool silence_switch_state = false;                      /**< Current silsnce switch state */
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
-    Telemetry::TelemetryStruct current_telemetry;                      /**< Current telemetry */
+    SimpleUtils::TelemetryStruct current_telemetry;           /**< Current telemetry */
     timer_execution_led.setInterval(1000);                  /**< Sets execution blinky LED interval */
 
     //Set initial program timers
@@ -184,6 +185,9 @@ void loop() {
 
     while(1)
     {
+        //Update telemetry first
+        telemetry.update();
+
         //Get messages from command interfaces
         radio.receive();
         cellular.receive();
@@ -195,7 +199,7 @@ void loop() {
         arm_switch_state = false;
         silence_switch_state = false;
 
-        //Telemetry Update
+        //Get the latest Telemetry
         if(timer_telemetry_check.check())
         {
             //Get latest telemetry
@@ -218,7 +222,9 @@ void loop() {
             logger.event(LOG_LEVELS::INFO, "Setting RTC from GPS timestamp.");
 
             // This line sets the RTC with an explicit date & time from unix epoch
-            rtc.adjust(DateTime(telemetry.getGpsDateTime()));
+            rtc.adjust(DateTime(telemetry.getGpsUnixTime()));
+
+            update_rtc_from_gps = false;
 
             logger.event(LOG_LEVELS::INFO, "RTC was adjusted from GPS timestamp.");
         }
@@ -285,14 +291,16 @@ void loop() {
             logger.event(LOG_LEVELS::DEBUG, "Current GPS Velocity H ", current_telemetry.velocity_horizontal);
             logger.event(LOG_LEVELS::DEBUG, "Current IMU Roll       ", current_telemetry.roll);
             logger.event(LOG_LEVELS::DEBUG, "Current IMU Pitch      ", current_telemetry.pitch);
+            logger.event(LOG_LEVELS::DEBUG, "Current IMU Yaw        ", current_telemetry.yaw);
             logger.event(LOG_LEVELS::DEBUG, "Current IMU Heading    ", current_telemetry.heading);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Altitude   ", current_telemetry.altitude_barometric);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Pressure   ", current_telemetry.pressure);
-            logger.event(LOG_LEVELS::DEBUG, "Current IMU Temperature", current_telemetry.temperature);
+            logger.event(LOG_LEVELS::DEBUG, "Current Baro Altitude  ", current_telemetry.altitude_barometric);
+            logger.event(LOG_LEVELS::DEBUG, "Current Baro Temp      ", current_telemetry.temperature);
+            logger.event(LOG_LEVELS::DEBUG, "Current Baro Pressure  ", current_telemetry.pressure);
+            logger.event(LOG_LEVELS::DEBUG, "Current Baro humidity  ", current_telemetry.humidity);
             logger.event(LOG_LEVELS::DEBUG, "Current Rel Altitude   ", current_telemetry.altitude_relative);
-            logger.event(LOG_LEVELS::DEBUG, "Current Arm Sw State    ", arm_switch_state);
-            logger.event(LOG_LEVELS::DEBUG, "Current Silence Sw State", silence_switch_state);
-            logger.event(LOG_LEVELS::DEBUG, "Current Mission State", mission_state.get());
+            logger.event(LOG_LEVELS::DEBUG, "Current Arm Sw State   ", arm_switch_state);
+            logger.event(LOG_LEVELS::DEBUG, "Current Sil Sw State   ", silence_switch_state);
+            logger.event(LOG_LEVELS::DEBUG, "Current Mission State  ", mission_state.get());
             logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Started", timer_telemetry_report.isStarted());
             logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Set", timer_telemetry_report.isSet());
             logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Interval", (int)(timer_telemetry_report.getInterval()));
@@ -442,7 +450,7 @@ void sendHeartbeat(MISSION_STATES mission_state)
     cellular.send(message);
 }
 
-void sendReportTelemetry(Telemetry::TelemetryStruct& telemetry)
+void sendReportTelemetry(SimpleUtils::TelemetryStruct& telemetry)
 {
     hdlcMessage message;
     smpMessageReportTelemetry telemetry_report;
@@ -492,7 +500,7 @@ void sendNack(MESSAGE_TYPES command)
     cellular.send(message);
 }
 
-void logTelemetry(Telemetry::TelemetryStruct& telemetry)
+void logTelemetry(SimpleUtils::TelemetryStruct& telemetry)
 {
     int telemetry_size = 16;
     float temp_telemetry_array[telemetry_size];
