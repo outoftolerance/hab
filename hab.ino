@@ -12,6 +12,9 @@
 #include <MissionState.h>
 #include <HardwareConfiguration.h>
 #include <RTClib.h>
+#include <Adafruit_PWMServoDriver.h>
+#include <SimpleServo.h>
+#include <SimpleMusic.h>
 
 /*
  * Creating some new Serial ports using M0 SERCOM for peripherals
@@ -45,21 +48,27 @@ void SERCOM2_Handler()
   Serial3.IrqHandler();
 }
 
-Servo indicator_led;                                /**< External LED indicator lights, controlled by PWM like a servo */
-
-Stream& logging_output_stream = Serial;          /**< Logging output stream, this is of type Serial_ */
+Stream& logging_output_stream = Serial;             /**< Logging output stream, this is of type Serial_ */
 Stream& gps_input_stream = Serial1;                 /**< GPS device input stream, this is of type HardwareSerial */
 Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream, this is of type HardwareSerial */
 Stream& cellular_input_output_stream = Serial3;     /**< Cellular input output stream, this is of type HardwareSerial */
-Stream& aprs_output_stream = Serial5;                /**< APRS output data stream, this is of type Serial_ */
+Stream& aprs_output_stream = Serial5;               /**< APRS output data stream, this is of type Serial_ */
 
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);                            /**< HDLC messaging object, linked to message callback */
 SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);                      /**< HDLC messaging object, linked to message callback */
 RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
 Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                                      /**< Log object */
 DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
-Telemetry telemetry(&gps_input_stream);     /**< Telemetry object */
+Telemetry telemetry(&gps_input_stream);                                                         /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
+Adafruit_PWMServoDriver servo_driver = Adafruit_PWMServoDriver();                               /**< Adafruit servo driver object */
+SimpleServo strobes[] = {                                                                       /**< External LED indicator lights, controlled by PWM like a servo */
+    SimpleServo(STROBE_PWM_OFF, STROBE_PWM_ON, STROBE_CHANNEL_0, &servo_driver),
+    SimpleServo(STROBE_PWM_OFF, STROBE_PWM_ON, STROBE_CHANNEL_1, &servo_driver),
+    SimpleServo(STROBE_PWM_OFF, STROBE_PWM_ON, STROBE_CHANNEL_2, &servo_driver),
+    SimpleServo(STROBE_PWM_OFF, STROBE_PWM_ON, STROBE_CHANNEL_3, &servo_driver)
+};
+SimpleMusic buzzer(BUZZER);                                                                     /**< Buzzer music object to play tunes */
 
 uint8_t node_id_ = 1;
 uint8_t node_type_ = NODE_TYPES::NODE_TYPE_BALLOON;
@@ -80,17 +89,14 @@ const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,ve
  */
 void setup() {
     //Sleep until debug can connect
-    //while(!Serial);
+    while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(ARM_SWITCH, INPUT);
-    pinMode(SILENCE_SWITCH, INPUT);
-    pinMode(LED_EXTERNAL, OUTPUT);
-    pinMode(BUZZER_EXTERNAL, OUTPUT);
-
-    //Bind servos
-    indicator_led.attach(LED_EXTERNAL);
+    pinMode(LED_STATUS_R, OUTPUT);
+    pinMode(LED_STATUS_G, OUTPUT);
+    pinMode(LED_STATUS_B, OUTPUT);
+    pinMode(BUZZER, OUTPUT);
     
     //Start debug serial port
     logger.init();
@@ -159,6 +165,12 @@ void setup() {
     }
     logger.event(LOG_LEVELS::INFO, "Done!");
 
+    //Initialize PWM driver and servos
+    logger.event(LOG_LEVELS::INFO, "Starting PWM Driver...");
+    servo_driver.begin();
+    servo_driver.setPWMFreq(SERVO_PWM_FREQUENCY);
+    logger.event(LOG_LEVELS::INFO, "Done!");
+
     logger.event(LOG_LEVELS::INFO, "Finished initialisation, starting program!");
 }
 
@@ -170,7 +182,7 @@ void loop() {
     bool arm_switch_state = false;                          /**< Current launch switch state */
     bool silence_switch_state = false;                      /**< Current silsnce switch state */
     MissionStateFunction current_mission_state_function;    /**< Current mission state function */
-    SimpleUtils::TelemetryStruct current_telemetry;           /**< Current telemetry */
+    SimpleUtils::TelemetryStruct current_telemetry;         /**< Current telemetry */
     timer_execution_led.setInterval(1000);                  /**< Sets execution blinky LED interval */
 
     //Set initial program timers
@@ -194,8 +206,6 @@ void loop() {
 
         //Get launch and silence switch states
         logger.event(LOG_LEVELS::DEBUG, "Getting updated status of switches.");
-        //arm_switch_state = digitalRead(ARM_SWITCH);
-        //silence_switch_state = digitalRead(SILENCE_SWITCH);
         arm_switch_state = false;
         silence_switch_state = false;
 
@@ -250,21 +260,27 @@ void loop() {
         //Buzzer Beeper
         if(current_mission_state_function.beeper_enabled)
         {
-            digitalWrite(BUZZER_EXTERNAL, true);
+            buzzer.play();
         }
         else
         {
-            digitalWrite(BUZZER_EXTERNAL, false);
+            buzzer.stop();
         }
 
-        //LED Blinker
-        if(current_mission_state_function.led_enabled)
+        //Strobe Blinker
+        if(current_mission_state_function.strobe_enabled)
         {
-            indicator_led.writeMicroseconds(2000);
+            for(int i = 0; i < STROBE_COUNT; i++)
+            {
+                strobes[i].goToMax();
+            }
         }
         else
         {
-            indicator_led.writeMicroseconds(1000);
+            for(int i = 0; i < STROBE_COUNT; i++)
+            {
+                strobes[i].goToMin();
+            }
         }
 
         //Execution LED indicator blinkies
@@ -273,10 +289,12 @@ void loop() {
             if(digitalRead(LED_BUILTIN) == HIGH)
             {
                 digitalWrite(LED_BUILTIN, LOW);
+                digitalWrite(LED_STATUS_R, LOW);
             }
             else
             {
                 digitalWrite(LED_BUILTIN, HIGH);
+                digitalWrite(LED_STATUS_R, HIGH);
             }
 
             //Send Heartbeat message
@@ -311,7 +329,7 @@ void loop() {
 
         //Update mission state
         logger.event(LOG_LEVELS::DEBUG, "Updating Mission State subsystem.");
-        if(!mission_state.update(current_telemetry, arm_switch_state, silence_switch_state))
+        if(!mission_state.update(current_telemetry))
         {
             logger.event(LOG_LEVELS::ERROR, "Failed to update Mission State subsystem!");
         }
@@ -458,13 +476,14 @@ void sendReportTelemetry(SimpleUtils::TelemetryStruct& telemetry)
     telemetry_report.latitude.value = telemetry.latitude;
     telemetry_report.longitude.value = telemetry.longitude;
     telemetry_report.altitude.value = telemetry.altitude;
-    telemetry_report.altitude.value = telemetry.altitude_ellipsoid;
+    telemetry_report.altitude_ellipsoid.value = telemetry.altitude_ellipsoid;
     telemetry_report.altitude_relative.value = telemetry.altitude_relative;
     telemetry_report.altitude_barometric.value = telemetry.altitude_barometric;
     telemetry_report.velocity_horizontal.value = telemetry.velocity_horizontal;
     telemetry_report.velocity_vertical.value = telemetry.velocity_vertical;
     telemetry_report.roll.value = telemetry.roll;
     telemetry_report.pitch.value = telemetry.pitch;
+    telemetry_report.yaw.value = telemetry.yaw;
     telemetry_report.heading.value = telemetry.heading;
     telemetry_report.course.value = telemetry.course;
 
@@ -527,10 +546,17 @@ void logTelemetry(SimpleUtils::TelemetryStruct& telemetry)
 
 void stop()
 {
+    //Turn off other colors
+    digitalWrite(LED_STATUS_G, LOW);
+    digitalWrite(LED_STATUS_B, LOW);
+
+    //Flash red quickly
     while(1)
     {
+        digitalWrite(LED_STATUS_R, HIGH);
         digitalWrite(LED_BUILTIN, HIGH);
         delay(50);
+        digitalWrite(LED_STATUS_R, LOW);
         digitalWrite(LED_BUILTIN, LOW);
         delay(50); 
     }
