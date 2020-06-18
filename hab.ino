@@ -15,6 +15,7 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <SimpleServo.h>
 #include <SimpleMusic.h>
+#include <Adafruit_SleepyDog.h>
 
 /*
  * Creating some new Serial ports using M0 SERCOM for peripherals
@@ -50,8 +51,8 @@ void SERCOM2_Handler()
 
 Stream& logging_output_stream = Serial;             /**< Logging output stream, this is of type Serial_ */
 Stream& gps_input_stream = Serial1;                 /**< GPS device input stream, this is of type HardwareSerial */
-Stream& radio_input_output_stream = Serial2;        /**< Radio input output stream, this is of type HardwareSerial */
-Stream& cellular_input_output_stream = Serial3;     /**< Cellular input output stream, this is of type HardwareSerial */
+Stream& radio_input_output_stream = Serial3;        /**< Radio input output stream, this is of type HardwareSerial */
+Stream& cellular_input_output_stream = Serial2;     /**< Cellular input output stream, this is of type HardwareSerial */
 Stream& aprs_output_stream = Serial5;               /**< APRS output data stream, this is of type Serial_ */
 
 SimpleHDLC radio(radio_input_output_stream, &handleMessageCallback);                            /**< HDLC messaging object, linked to message callback */
@@ -59,7 +60,7 @@ SimpleHDLC cellular(cellular_input_output_stream, &handleMessageCallback);      
 RTC_DS3231 rtc;                                                                                 /**< Real Time Clock object */
 Log logger(logging_output_stream, &rtc, LOG_LEVELS::INFO);                                      /**< Log object */
 DataLog telemetry_logger(SD_CHIP_SELECT, &rtc);                                                 /**< Data logging object for telemetry */
-Telemetry telemetry(&gps_input_stream);                                                         /**< Telemetry object */
+Telemetry telemetry(&logger, &gps_input_stream);                                                /**< Telemetry object */
 bool update_rtc_from_gps = false;                                                               /**< If RTC lost power we need to update from GPS */
 Adafruit_PWMServoDriver servo_driver = Adafruit_PWMServoDriver();                               /**< Adafruit servo driver object */
 SimpleServo strobes[] = {                                                                       /**< External LED indicator lights, controlled by PWM like a servo */
@@ -89,7 +90,7 @@ const String telemetry_log_header = "ts,lat,lon,alt,alt_elpd,alt_rel,alt_baro,ve
  */
 void setup() {
     //Sleep until debug can connect
-    while(!Serial);
+    //while(!Serial);
 
     //Setup pin modes
     pinMode(LED_BUILTIN, OUTPUT);
@@ -127,16 +128,24 @@ void setup() {
     //Start radio modem Serial port
     logger.event(LOG_LEVELS::INFO, "Starting radio modem serial port...");
     static_cast<HardwareSerial&>(radio_input_output_stream).begin(57600);
-    pinPeripheral(10, PIO_SERCOM);
-    pinPeripheral(11, PIO_SERCOM);
     logger.event(LOG_LEVELS::INFO, "Done!");
 
     //Start cellular modem Serial port
     logger.event(LOG_LEVELS::INFO, "Starting cellular modem serial port...");
     static_cast<HardwareSerial&>(cellular_input_output_stream).begin(57600);
+    logger.event(LOG_LEVELS::INFO, "Done!");
+
+    //Start APRS Serial Port
+    logger.event(LOG_LEVELS::INFO, "Starting APRS radio serial port...");
+    static_cast<HardwareSerial&>(aprs_output_stream).begin(9600);
+    logger.event(LOG_LEVELS::INFO, "Done!");
+
+    //Setup Sercoms
+    //!!!NOTE!!! These MUST be executed AFTER "beginning" the serial port!
     pinPeripheral(3, PIO_SERCOM_ALT);
     pinPeripheral(4, PIO_SERCOM_ALT);
-    logger.event(LOG_LEVELS::INFO, "Done!");
+    pinPeripheral(10, PIO_SERCOM);
+    pinPeripheral(11, PIO_SERCOM);
 
     //Initialise state machine
     logger.event(LOG_LEVELS::INFO, "Initialising Mission State subsystem...");
@@ -171,6 +180,9 @@ void setup() {
     servo_driver.setPWMFreq(SERVO_PWM_FREQUENCY);
     logger.event(LOG_LEVELS::INFO, "Done!");
 
+    //Initialize the watchdog
+    Watchdog.enable(WATCHDOG_TIMEOUT);
+
     logger.event(LOG_LEVELS::INFO, "Finished initialisation, starting program!");
 }
 
@@ -179,37 +191,48 @@ void setup() {
  * @details Called after setup() function, loops inifiteley, everything happens here
  */
 void loop() {
-    bool arm_switch_state = false;                          /**< Current launch switch state */
-    bool silence_switch_state = false;                      /**< Current silsnce switch state */
-    MissionStateFunction current_mission_state_function;    /**< Current mission state function */
-    SimpleUtils::TelemetryStruct current_telemetry;         /**< Current telemetry */
-    timer_execution_led.setInterval(1000);                  /**< Sets execution blinky LED interval */
+    MissionStateFunction current_mission_state_function;            /**< Current mission state function */
+    SimpleUtils::TelemetryStruct current_telemetry;                 /**< Current telemetry */
+    timer_telemetry_check.setInterval(TELEMETRY_CHECK_INTERVAL);    /**< Sets interval for telemetry check timer */
+    timer_execution_led.setInterval(EXECUTION_LED_INTERVAL);        /**< Sets execution blinky LED interval */
+    unsigned long time_of_last_error = millis();
+    char gps_string[GPS_SERIAL_BUFFER_SIZE];
+    int gps_string_chars = 0;
+    int gps_string_position = 0;
 
     //Set initial program timers
     mission_state.getFunction(current_mission_state_function);
     setTimers(current_mission_state_function);
 
     //Start system timers
+    timer_execution_led.start();
     timer_telemetry_check.start();
     timer_telemetry_log.start();
     timer_telemetry_report.start();
-    timer_execution_led.start();
 
     while(1)
     {
         //Update telemetry first
+        logger.event(LOG_LEVELS::DEBUG, "Running telemetry system update");
         telemetry.update();
 
+        //Push GPS chars to APRS Radio
+        logger.event(LOG_LEVELS::DEBUG, "Pushing GPS string to APRS radio");
+        gps_string_chars = telemetry.getGpsString(gps_string, sizeof(gps_string)/sizeof(char));
+        gps_string_position = 0;
+        while(gps_string_position < gps_string_chars)
+        {
+            aprs_output_stream.write(gps_string[gps_string_position]);
+            gps_string_position++;
+        }
+
         //Get messages from command interfaces
+        logger.event(LOG_LEVELS::DEBUG, "Processing messages from command interfaces");
         radio.receive();
         cellular.receive();
 
-        //Get launch and silence switch states
-        logger.event(LOG_LEVELS::DEBUG, "Getting updated status of switches.");
-        arm_switch_state = false;
-        silence_switch_state = false;
-
         //Get the latest Telemetry
+        logger.event(LOG_LEVELS::DEBUG, "Checking telemetry timer");
         if(timer_telemetry_check.check())
         {
             //Get latest telemetry
@@ -218,6 +241,7 @@ void loop() {
             if(!telemetry.get(current_telemetry))
             {
                 logger.event(LOG_LEVELS::ERROR, "Failed to get update from Telemetry subsystem!");
+                time_of_last_error = millis();
             }
             else
             {
@@ -227,6 +251,7 @@ void loop() {
         }
 
         //Set RTC if needed and gps fix is true
+        logger.event(LOG_LEVELS::DEBUG, "Checking for RTC update from GPS");
         if (update_rtc_from_gps && telemetry.getGpsFixStatus()) 
         {
             logger.event(LOG_LEVELS::INFO, "Setting RTC from GPS timestamp.");
@@ -240,6 +265,7 @@ void loop() {
         }
 
         //Telemetry Log
+        logger.event(LOG_LEVELS::DEBUG, "Checking telemetry log timer");
         if(timer_telemetry_log.check())
         {
             logger.event(LOG_LEVELS::DEBUG, "Logging telemetry to storage.");
@@ -249,6 +275,7 @@ void loop() {
         }
 
         //Telemetry Report
+        logger.event(LOG_LEVELS::DEBUG, "Checking telemetry report timer");
         if(timer_telemetry_report.check())
         {
             logger.event(LOG_LEVELS::INFO, "Sending telemetry report message.");
@@ -258,18 +285,23 @@ void loop() {
         }
 
         //Buzzer Beeper
+        logger.event(LOG_LEVELS::DEBUG, "Checking buzzer enable status");
         if(current_mission_state_function.beeper_enabled)
         {
+            logger.event(LOG_LEVELS::DEBUG, "Playing buzzer");
             buzzer.play();
         }
         else
         {
+            logger.event(LOG_LEVELS::DEBUG, "Stopping buzzer");
             buzzer.stop();
         }
 
         //Strobe Blinker
+        logger.event(LOG_LEVELS::DEBUG, "Checking strobe enable status");
         if(current_mission_state_function.strobe_enabled)
         {
+            logger.event(LOG_LEVELS::DEBUG, "Strobes enabled");
             for(int i = 0; i < STROBE_COUNT; i++)
             {
                 strobes[i].goToMax();
@@ -277,24 +309,43 @@ void loop() {
         }
         else
         {
+            logger.event(LOG_LEVELS::DEBUG, "Strobes disabled");
             for(int i = 0; i < STROBE_COUNT; i++)
             {
                 strobes[i].goToMin();
             }
         }
 
+        //Health status LED indicator
+        
+
         //Execution LED indicator blinkies
+        logger.event(LOG_LEVELS::DEBUG, "Checking running LED timer");
         if(timer_execution_led.check())
         {
+            //Reset Watchdog
+            Watchdog.reset();
+
+            //Blink LED
             if(digitalRead(LED_BUILTIN) == HIGH)
             {
                 digitalWrite(LED_BUILTIN, LOW);
-                digitalWrite(LED_STATUS_R, LOW);
+                digitalWrite(LED_STATUS_B, LOW);
             }
             else
             {
                 digitalWrite(LED_BUILTIN, HIGH);
-                digitalWrite(LED_STATUS_R, HIGH);
+                digitalWrite(LED_STATUS_B, HIGH);
+            }
+
+            //Set Health LED color
+            if(millis() - time_of_last_error > 1000 && digitalRead(LED_BUILTIN) == LOW)
+            {
+                digitalWrite(LED_STATUS_G, HIGH);
+            }
+            else
+            {
+                digitalWrite(LED_STATUS_G, LOW);
             }
 
             //Send Heartbeat message
@@ -316,8 +367,6 @@ void loop() {
             logger.event(LOG_LEVELS::DEBUG, "Current Baro Pressure  ", current_telemetry.pressure);
             logger.event(LOG_LEVELS::DEBUG, "Current Baro humidity  ", current_telemetry.humidity);
             logger.event(LOG_LEVELS::DEBUG, "Current Rel Altitude   ", current_telemetry.altitude_relative);
-            logger.event(LOG_LEVELS::DEBUG, "Current Arm Sw State   ", arm_switch_state);
-            logger.event(LOG_LEVELS::DEBUG, "Current Sil Sw State   ", silence_switch_state);
             logger.event(LOG_LEVELS::DEBUG, "Current Mission State  ", mission_state.get());
             logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Started", timer_telemetry_report.isStarted());
             logger.event(LOG_LEVELS::DEBUG, "Telemetry Report Timer Set", timer_telemetry_report.isSet());
@@ -332,6 +381,7 @@ void loop() {
         if(!mission_state.update(current_telemetry))
         {
             logger.event(LOG_LEVELS::ERROR, "Failed to update Mission State subsystem!");
+            time_of_last_error = millis();
         }
         else
         {
@@ -347,7 +397,6 @@ void loop() {
 
 void setTimers(MissionStateFunction function)
 {
-    timer_telemetry_check.setInterval(function.telemetry_check_interval);
     timer_telemetry_log.setInterval(function.telemetry_log_interval);
 
     if(!timer_telemetry_report_override)
@@ -550,14 +599,20 @@ void stop()
     digitalWrite(LED_STATUS_G, LOW);
     digitalWrite(LED_STATUS_B, LOW);
 
+    Timer fail_timer;
+    fail_timer.setInterval(100);
+    fail_timer.start();
+
     //Flash red quickly
     while(1)
     {
-        digitalWrite(LED_STATUS_R, HIGH);
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(50);
-        digitalWrite(LED_STATUS_R, LOW);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(50); 
+        buzzer.play();
+
+        if(fail_timer.check())
+        {
+            digitalWrite(LED_STATUS_R, !digitalRead(LED_STATUS_R));
+            digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+            fail_timer.reset();
+        }
     }
 }
